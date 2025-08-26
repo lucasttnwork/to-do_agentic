@@ -1,22 +1,20 @@
-import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from 'next/font/google';
-import "./globals.css";
-import { Theme, ThemePanel } from '@radix-ui/themes';
-import '@radix-ui/themes/styles.css';
+import type { Metadata } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({
+const geist = Geist({
+  variable: '--font-geist-sans',
   subsets: ['latin'],
-  variable: '--font-inter',
 });
 
-const robotoMono = Roboto_Mono({
+const geistMono = Geist_Mono({
+  variable: '--font-geist-mono',
   subsets: ['latin'],
-  variable: '--font-roboto-mono',
 });
 
 export const metadata: Metadata = {
-  title: "Todo AI SaaS",
-  description: "Sistema de gerenciamento de tarefas com inteligência artificial",
+  title: 'TaskFlow AI - Intelligent Task Management',
+  description: 'AI-powered task management with natural language processing and intelligent prioritization',
 };
 
 export default function RootLayout({
@@ -25,11 +23,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`dark ${inter.variable} ${robotoMono.variable}`}>
-      <body className="antialiased">
-        <Theme appearance="dark" accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
-          {children}
-        </Theme>
+    <html lang="pt-BR" className="dark">
+      <body className={`${geist.variable} ${geistMono.variable} antialiased bg-slate-950 text-white`}>
+        {children}
       </body>
     </html>
   );
