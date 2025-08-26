@@ -113,14 +113,14 @@ export class ChatService {
 
       // Processar com agentes de IA
       const existingTasks = await this.loadExistingTasks(workspaceId);
-      const agentResponse = await processUserInput(content, existingTasks, session.context);
+      const agentResponse = await processUserInput(content, existingTasks, workspaceId, session.context);
 
       let assistantMessage: ChatMessage;
       let task: Task | undefined;
 
-      if (agentResponse.success && agentResponse.data) {
+      if (agentResponse.finalTask) {
         // Tarefa criada com sucesso
-        task = agentResponse.data;
+        task = agentResponse.finalTask;
         task.workspace_id = workspaceId;
 
         // Salvar tarefa no banco
@@ -132,17 +132,20 @@ export class ChatService {
         assistantMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: this.generateSuccessResponse(task, agentResponse.reasoning),
+          content: this.generateSuccessResponse(task, 'Tarefa processada com sucesso'),
           timestamp: new Date().toISOString(),
           task_id: task.id,
           action: 'task_created',
         };
       } else {
         // Erro no processamento
+        const errorMessage = agentResponse.errors.length > 0 
+          ? agentResponse.errors.join('; ') 
+          : 'Erro desconhecido';
         assistantMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: this.generateErrorResponse(agentResponse.error || 'Erro desconhecido'),
+          content: this.generateErrorResponse(errorMessage),
           timestamp: new Date().toISOString(),
         };
       }
@@ -156,7 +159,7 @@ export class ChatService {
       return {
         message: assistantMessage,
         task,
-        error: agentResponse.success ? undefined : agentResponse.error,
+        error: agentResponse.finalTask ? undefined : agentResponse.errors.join('; '),
       };
     } catch (error) {
       console.error('Erro ao processar mensagem:', error);
@@ -179,8 +182,7 @@ export class ChatService {
         .from('tasks')
         .select(`
           *,
-          subtasks (*),
-          entities (*)
+          subtasks (*)
         `)
         .eq('workspace_id', workspaceId)
         .in('status', ['todo', 'in_progress'])
@@ -276,7 +278,7 @@ export class ChatService {
             .from('entities')
             .select('id')
             .eq('workspace_id', task.workspace_id)
-            .eq('name', entity.value)
+            .eq('name', entity.name)
             .eq('type', entity.type)
             .single();
 
@@ -289,7 +291,7 @@ export class ChatService {
               .insert({
                 workspace_id: task.workspace_id,
                 type: entity.type,
-                name: entity.value,
+                name: entity.name,
                 metadata: {},
               })
               .select('id')

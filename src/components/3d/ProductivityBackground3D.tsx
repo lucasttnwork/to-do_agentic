@@ -20,12 +20,12 @@ export default function ProductivityBackground3D() {
       positions[i * 3 + 1] = (Math.random() - 0.5) * 20
       positions[i * 3 + 2] = (Math.random() - 0.5) * 15
       
-      // Cores baseadas em produtividade (azul para foco, verde para progresso)
+      // Cores baseadas em produtividade (azul para foco, roxo para progresso)
       const color = new THREE.Color()
       if (Math.random() > 0.5) {
         color.setHSL(0.6, 0.7, 0.6) // Azul para foco
       } else {
-        color.setHSL(0.4, 0.8, 0.5) // Verde para progresso
+        color.setHSL(0.8, 0.8, 0.5) // Roxo para progresso
       }
       colors[i * 3] = color.r
       colors[i * 3 + 1] = color.g
@@ -84,7 +84,7 @@ export default function ProductivityBackground3D() {
             rotation={[Math.PI / 2, 0, 0]}
           >
             <meshStandardMaterial
-              color="#10b981"
+              color="#3b82f6"
               transparent
               opacity={0.3}
               side={THREE.DoubleSide}
@@ -100,86 +100,70 @@ export default function ProductivityBackground3D() {
             rotation={[Math.PI / 2, 0, 0]}
           >
             <meshStandardMaterial
-              color="#3b82f6"
+              color="#8b5cf6"
               transparent
-              opacity={0.25}
+              opacity={0.3}
               side={THREE.DoubleSide}
             />
           </Ring>
         </Float>
 
-        {/* Barra de progresso 3D - Representando timeline */}
-        <Float speed={1.8} rotationIntensity={0.2} floatIntensity={1}>
+        {/* Cubos representando tarefas */}
+        <Float speed={1.8} rotationIntensity={0.4} floatIntensity={1.2}>
           <Box
-            args={[6, 0.3, 0.3]}
-            position={[0, 5, -6]}
+            args={[0.3, 0.3, 0.3]}
+            position={[-5, 1, -3]}
           >
             <meshStandardMaterial
-              color="#8b5cf6"
+              color="#3b82f6"
               transparent
-              opacity={0.2}
+              opacity={0.4}
             />
           </Box>
         </Float>
 
-        {/* Indicadores de prioridade - Representando níveis de urgência */}
-        <Float speed={2.5} rotationIntensity={0.8} floatIntensity={2}>
+        <Float speed={2.2} rotationIntensity={0.6} floatIntensity={1.8}>
+          <Box
+            args={[0.25, 0.25, 0.25]}
+            position={[6, 2, -2]}
+          >
+            <meshStandardMaterial
+              color="#8b5cf6"
+              transparent
+              opacity={0.4}
+            />
+          </Box>
+        </Float>
+
+        {/* Cilindros representando progresso */}
+        <Float speed={1.6} rotationIntensity={0.3} floatIntensity={1.1}>
           <Cylinder
-            args={[0.2, 0.2, 1.5, 8]}
-            position={[-6, -3, -3]}
+            args={[0.2, 0.2, 0.8, 8]}
+            position={[-3, -1, -4]}
             rotation={[0, 0, Math.PI / 4]}
           >
             <meshStandardMaterial
-              color="#ef4444"
+              color="#3b82f6"
               transparent
               opacity={0.3}
             />
           </Cylinder>
         </Float>
 
-        <Float speed={1.2} rotationIntensity={0.4} floatIntensity={1.2}>
+        <Float speed={1.9} rotationIntensity={0.5} floatIntensity={1.4}>
           <Cylinder
-            args={[0.15, 0.15, 1.2, 8]}
-            position={[6, 1, -4]}
+            args={[0.15, 0.15, 0.6, 8]}
+            position={[4, 0, -3]}
             rotation={[0, 0, -Math.PI / 6]}
           >
             <meshStandardMaterial
-              color="#f59e0b"
+              color="#8b5cf6"
               transparent
-              opacity={0.25}
+              opacity={0.3}
             />
           </Cylinder>
         </Float>
-
-        {/* Grid de produtividade - Representando organização */}
-        <Float speed={1} rotationIntensity={0.1}>
-          <group position={[0, 0, -8]}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <group key={i} position={[(i - 2) * 2, 0, 0]}>
-                {Array.from({ length: 3 }, (_, j) => (
-                  <Box
-                    key={j}
-                    args={[0.1, 0.1, 0.1]}
-                    position={[0, (j - 1) * 2, 0]}
-                  >
-                    <meshStandardMaterial
-                      color="#06b6d4"
-                      transparent
-                      opacity={0.15}
-                    />
-                  </Box>
-                ))}
-              </group>
-            ))}
-          </group>
-        </Float>
       </group>
-
-      {/* Luzes ambientes para produtividade */}
-      <ambientLight intensity={0.2} />
-      <pointLight position={[10, 10, 10]} intensity={0.4} color="#3b82f6" />
-      <pointLight position={[-10, -10, -5]} intensity={0.3} color="#10b981" />
-      <pointLight position={[0, 15, -10]} intensity={0.2} color="#8b5cf6" />
     </>
   )
 }

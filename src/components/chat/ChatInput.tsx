@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppStore } from '@/lib/store';
 import { ChatMessage } from '@/types';
 import { generateId } from '@/lib/utils';
@@ -103,17 +103,53 @@ export function ChatInput() {
     try {
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('workspace_id', currentWorkspace?.id || '');
 
-      const response = await fetch('/api/audio/transcribe', { method: 'POST', body: formData });
+      const response = await fetch('/api/audio/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
       const result = await response.json();
 
       if (result.success) {
         setMessage(result.text);
+        // Processar automaticamente a transcrição
+        const userMessage: ChatMessage = {
+          id: generateId(),
+          role: 'user',
+          content: result.text,
+          timestamp: new Date().toISOString(),
+        };
+        addMessage(userMessage);
+        
+        // Processar com IA
+        const aiResponse = await fetch('/api/ai/process', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: result.text, workspace_id: currentWorkspace?.id }),
+        });
+        
+        const aiResult = await aiResponse.json();
+        
+        if (aiResult.success) {
+          const assistantMessage: ChatMessage = {
+            id: generateId(),
+            role: 'assistant',
+            content: `✅ Criei a tarefa "${aiResult.task.title}" com prioridade P${aiResult.task.priority}. ${aiResult.task.due_date ? `Prazo: ${new Date(aiResult.task.due_date).toLocaleDateString('pt-BR')}` : ''}`,
+            timestamp: new Date().toISOString(),
+            action: 'task_created',
+            task_id: aiResult.task.id,
+          };
+          addMessage(assistantMessage);
+        } else {
+          addMessage({ id: generateId(), role: 'assistant', content: `❌ Erro ao processar áudio: ${aiResult.error}`, timestamp: new Date().toISOString() });
+        }
       } else {
-        alert('Erro na transcrição do áudio');
+        addMessage({ id: generateId(), role: 'assistant', content: `❌ Erro na transcrição: ${result.error}`, timestamp: new Date().toISOString() });
       }
-    } catch {
-      alert('Erro ao processar áudio');
+    } catch (error) {
+      addMessage({ id: generateId(), role: 'assistant', content: '❌ Erro ao processar áudio. Tente novamente.', timestamp: new Date().toISOString() });
     } finally {
       setIsLoading(false);
       setIsProcessing(false);
@@ -128,46 +164,43 @@ export function ChatInput() {
   };
 
   return (
-    <Box p="4" className="border-t border-gray-800 bg-card">
-      <Flex gap="2" align="center">
-        <IconButton
-          color={isRecording ? 'red' : 'gray'}
-          variant={isRecording ? 'soft' : 'ghost'}
-          onMouseDown={startRecording}
-          onMouseUp={stopRecording}
-          onMouseLeave={stopRecording}
-          disabled={isProcessing}
-          aria-label="Gravar áudio"
-        >
-          {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-        </IconButton>
-
-        <Box className="flex-1 relative">
+    <Box p="4" className="border-t border-slate-700/30">
+      <Flex gap="3" align="end">
+        <Box className="flex-1">
           <TextArea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Digite ou segure 🎤 para falar..."
+            placeholder="Digite ou segure para falar..."
+            className="min-h-[60px] bg-white/5 border border-white/20 text-white placeholder-slate-400 focus:border-blue-500/50"
             disabled={isProcessing}
-            rows={1}
-            resize="none"
           />
-          <Box className="absolute right-2 top-1/2 -translate-y-1/2">
-            <IconButton onClick={sendMessage} disabled={!message.trim() || isProcessing} aria-label="Enviar">
-              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            </IconButton>
-          </Box>
         </Box>
+        
+        <Flex direction="column" gap="2">
+          {/* Botão de gravação */}
+          <IconButton
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isProcessing}
+            className={`w-12 h-12 ${
+              isRecording 
+                ? 'bg-red-500 hover:bg-red-600 text-white' 
+                : 'bg-white/5 border border-white/20 text-slate-300 hover:bg-white/10 hover:text-white'
+            } transition-all`}
+          >
+            {isRecording ? <MicOff /> : <Mic />}
+          </IconButton>
+          
+          {/* Botão de envio */}
+          <IconButton
+            onClick={sendMessage}
+            disabled={!message.trim() || isProcessing}
+            className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50"
+          >
+            {isProcessing ? <Loader2 className="animate-spin" /> : <Send />}
+          </IconButton>
+        </Flex>
       </Flex>
-
-      {isRecording && (
-        <Box mt="2" className="text-center">
-          <Box className="inline-flex items-center gap-2 px-3 py-1 bg-red-900/40 text-red-300 rounded-full text-sm">
-            <Box className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-            Gravando... Solte para parar
-          </Box>
-        </Box>
-      )}
     </Box>
   );
 }

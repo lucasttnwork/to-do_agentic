@@ -1,9 +1,7 @@
-import { StateGraph, END } from '@langchain/langgraph';
-import { ChatOpenAI } from '@langchain/openai';
-import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { AgentResponse, ParsedInput, LinkDecision, TaskPlan, PriorityDecision, Task, UserContext } from '@/types';
+import { Task, ParsedInput, LinkDecision, TaskPlan, PriorityDecision, AgentResponse } from '@/types';
+import { getOpenAI } from './openai-client';
 
-// Estado do grafo de agentes
+// Estado compartilhado entre agentes
 export interface AgentState {
   input: string;
   parsedInput?: ParsedInput;
@@ -12,93 +10,97 @@ export interface AgentState {
   taskPlan?: TaskPlan;
   priorityDecision?: PriorityDecision;
   finalTask?: Task;
-  userContext?: UserContext;
+  userContext?: any;
   errors: string[];
   confidence: number;
 }
 
-// Configuração do modelo
-const model = new ChatOpenAI({
-  modelName: 'gpt-4o-mini',
-  temperature: 0.1,
-  openAIApiKey: process.env.OPENAI_API_KEY,
-});
-
-// 1. AGENTE DE CAPTURA (INTAKE)
-async function intakeAgent(state: AgentState): Promise<AgentState> {
+// 1. INTAKE AGENT - Analisa entrada do usuário
+async function intakeAgent(input: string): Promise<AgentResponse<ParsedInput>> {
   try {
+    const client = getOpenAI();
     const prompt = `
-    Você é o agente de captura de um sistema de tarefas. Analise a entrada do usuário e extraia informações estruturadas.
+    Analise esta entrada do usuário e extraia informações estruturadas:
 
-    ENTRADA: "${state.input}"
+    ENTRADA: "${input}"
 
-    Extraia:
-    1. INTENÇÃO (task_new, task_update, task_complete, task_question)
-    2. ENTIDADES (clientes, pessoas, datas, horários)
-    3. AÇÃO principal (verbo + objeto)
-    4. PRAZO (explícito ou implícito)
-    5. PRIORIDADE (urgente, normal, baixa)
-    6. CONTEXTO (cliente, projeto, tipo de trabalho)
-
-    Responda apenas com JSON válido:
+    Retorne um JSON com:
     {
       "intention": "task_new|task_update|task_complete|task_question",
-      "action": "string",
-      "entities": [{"type": "client|person|date", "value": "string"}],
-      "due_date": "ISO date ou null",
+      "action": "descrição da ação principal",
+      "entities": [
+        {"type": "client|person|date|project", "value": "nome/valor"}
+      ],
+      "due_date": "YYYY-MM-DD ou null",
       "priority": 1|2|3,
-      "context": "string",
+      "context": "contexto adicional",
       "confidence": 0.0-1.0
     }
     `;
 
-    const response = await model.invoke([new HumanMessage(prompt)]);
-    const content = response.content as string;
-    
-    // Extrair JSON da resposta
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Resposta não contém JSON válido');
+    if (!client) {
+      const fallback: ParsedInput = {
+        intention: 'task_new',
+        action: input.slice(0, 120),
+        entities: [],
+        priority: 2,
+        context: undefined,
+        confidence: 0.6,
+      };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: 'Fallback sem OPENAI_API_KEY' };
     }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'Você é um assistente especializado em análise de tarefas. Responda apenas com JSON válido.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) throw new Error('Resposta vazia da IA');
+    const parsed = JSON.parse(response);
     
     return {
-      ...state,
-      parsedInput: parsed,
+      success: true,
+      data: parsed,
       confidence: parsed.confidence || 0.8,
+      reasoning: 'Análise de entrada concluída com sucesso'
     };
   } catch (error) {
     return {
-      ...state,
-      errors: [...state.errors, `Erro no agente de captura: ${error}`],
-      confidence: Math.max(0, state.confidence - 0.2),
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      confidence: 0,
+      reasoning: 'Falha na análise de entrada'
     };
   }
 }
 
-// 2. AGENTE DE VINCULAÇÃO (LINKER)
-async function linkerAgent(state: AgentState): Promise<AgentState> {
+// 2. LINKER AGENT - Vincula a tarefas existentes
+async function linkerAgent(
+  parsedInput: ParsedInput, 
+  existingTasks: Task[]
+): Promise<AgentResponse<LinkDecision>> {
   try {
-    if (!state.parsedInput) {
-      throw new Error('Entrada não foi processada');
-    }
-
+    const client = getOpenAI();
     const prompt = `
     Decida se esta nova entrada deve ser:
     - CRIAR nova tarefa
     - ANEXAR a tarefa existente como subtarefa/comentário  
     - EDITAR tarefa existente
 
-    ENTRADA: ${JSON.stringify(state.parsedInput)}
-    TAREFAS EXISTENTES: ${JSON.stringify(state.existingTasks.slice(0, 10))}
+    ENTRADA: ${JSON.stringify(parsedInput)}
+    TAREFAS EXISTENTES: ${JSON.stringify(existingTasks.slice(0, 10))}
 
     Considere:
     - Similaridade de contexto (mesmo cliente/projeto)
     - Proximidade temporal (mesmo dia/semana)
     - Complementaridade (subtarefa vs tarefa independente)
 
-    Responda apenas com JSON válido:
+    Retorne:
     {
       "decision": "create_new|attach_to|edit_existing",
       "target_task_id": "uuid ou null",
@@ -107,150 +109,194 @@ async function linkerAgent(state: AgentState): Promise<AgentState> {
     }
     `;
 
-    const response = await model.invoke([new HumanMessage(prompt)]);
-    const content = response.content as string;
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Resposta não contém JSON válido');
+    if (!client) {
+      const fallback: LinkDecision = {
+        decision: 'create_new',
+        reasoning: 'Fallback sem OPENAI_API_KEY',
+        confidence: 0.6,
+      };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: fallback.reasoning };
     }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'Você é um assistente especializado em decisões de vinculação de tarefas. Responda apenas com JSON válido.' },
+        {role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) throw new Error('Resposta vazia da IA');
+    const parsed = JSON.parse(response);
     
     return {
-      ...state,
-      linkDecision: parsed,
-      confidence: Math.min(state.confidence, parsed.confidence || 0.8),
+      success: true,
+      data: parsed,
+      confidence: parsed.confidence || 0.8,
+      reasoning: parsed.reasoning
     };
   } catch (error) {
     return {
-      ...state,
-      errors: [...state.errors, `Erro no agente de vinculação: ${error}`],
-      confidence: Math.max(0, state.confidence - 0.2),
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      confidence: 0,
+      reasoning: 'Falha na decisão de vinculação'
     };
   }
 }
 
-// 3. AGENTE DE PLANEJAMENTO (PLANNER)
-async function plannerAgent(state: AgentState): Promise<AgentState> {
+// 3. PLANNER AGENT - Cria plano de subtarefas
+async function plannerAgent(
+  parsedInput: ParsedInput,
+  linkDecision: LinkDecision
+): Promise<AgentResponse<TaskPlan>> {
   try {
-    if (!state.parsedInput) {
-      throw new Error('Entrada não foi processada');
-    }
-
+    const client = getOpenAI();
     const prompt = `
     Crie um plano detalhado para esta tarefa:
 
-    TAREFA: ${state.parsedInput.action}
-    CONTEXTO: ${state.parsedInput.context || 'Geral'}
+    ENTRADA: ${JSON.stringify(parsedInput)}
+    DECISÃO: ${JSON.stringify(linkDecision)}
 
-    Gere:
-    1. Título claro (verbo + resultado)
-    2. Descrição estruturada
-    3. 3-7 subtarefas em ordem lógica
-    4. Definition of Done
-    5. Estimativa de esforço (minutos)
-
-    Responda apenas com JSON válido:
+    Retorne:
     {
-      "title": "string",
-      "description": "string",
+      "title": "título da tarefa",
+      "description": "descrição detalhada",
       "subtasks": [
-        {"title": "string", "description": "string", "order_index": 1}
+        {
+          "title": "subtarefa 1",
+          "description": "descrição da subtarefa",
+          "order_index": 1
+        }
       ],
-      "definition_of_done": "string",
-      "estimated_minutes": number,
+      "definition_of_done": "critérios de conclusão",
+      "estimated_minutes": 120,
       "confidence": 0.0-1.0
     }
     `;
 
-    const response = await model.invoke([new HumanMessage(prompt)]);
-    const content = response.content as string;
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Resposta não contém JSON válido');
+    if (!client) {
+      const fallback: TaskPlan = {
+        title: parsedInput.action,
+        description: 'Tarefa criada via fallback',
+        subtasks: [],
+        definition_of_done: 'Tarefa concluída',
+        estimated_minutes: 60,
+        confidence: 0.6,
+      };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: 'Fallback sem OPENAI_API_KEY' };
     }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'Você é um assistente especializado em planejamento de tarefas. Responda apenas com JSON válido.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) throw new Error('Resposta vazia da IA');
+    const parsed = JSON.parse(response);
     
     return {
-      ...state,
-      taskPlan: parsed,
-      confidence: Math.min(state.confidence, parsed.confidence || 0.8),
+      success: true,
+      data: parsed,
+      confidence: parsed.confidence || 0.8,
+      reasoning: 'Planejamento concluído com sucesso'
     };
   } catch (error) {
     return {
-      ...state,
-      errors: [...state.errors, `Erro no agente de planejamento: ${error}`],
-      confidence: Math.max(0, state.confidence - 0.2),
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      confidence: 0,
+      reasoning: 'Falha no planejamento'
     };
   }
 }
 
-// 4. AGENTE DE PRIORIZAÇÃO (PRIORITIZER)
-async function prioritizerAgent(state: AgentState): Promise<AgentState> {
+// 4. PRIORITIZER AGENT - Define prioridade e prazo
+async function prioritizerAgent(
+  taskPlan: TaskPlan,
+  userContext?: any
+): Promise<AgentResponse<PriorityDecision>> {
   try {
-    if (!state.taskPlan) {
-      throw new Error('Plano de tarefa não foi gerado');
-    }
-
+    const client = getOpenAI();
     const prompt = `
-    Defina prioridade para esta tarefa:
+    Defina a prioridade e prazo para esta tarefa:
 
-    TAREFA: ${JSON.stringify(state.taskPlan)}
-    CONTEXTO DO USUÁRIO: ${JSON.stringify(state.userContext || {})}
+    PLANO: ${JSON.stringify(taskPlan)}
+    CONTEXTO DO USUÁRIO: ${JSON.stringify(userContext || {})}
 
     Considere:
-    - Urgência (prazo próximo)
-    - Impacto (cliente VIP, receita)
-    - Esforço vs tempo disponível
-    - SLA contratual
+    - SLA do cliente (se aplicável)
+    - Urgência da tarefa
+    - Capacidade atual do usuário
+    - Dependências
 
-    Responda apenas com JSON válido:
+    Retorne:
     {
       "priority": 1|2|3,
-      "suggested_due_date": "ISO date ou null",
-      "reasoning": "explicação",
+      "suggested_due_date": "YYYY-MM-DD ou null",
+      "reasoning": "explicação da decisão",
       "confidence": 0.0-1.0
     }
     `;
 
-    const response = await model.invoke([new HumanMessage(prompt)]);
-    const content = response.content as string;
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Resposta não contém JSON válido');
+    if (!client) {
+      const fallback: PriorityDecision = {
+        priority: 2,
+        reasoning: 'Prioridade média por padrão',
+        confidence: 0.6,
+      };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: fallback.reasoning };
     }
-    
-    const parsed = JSON.parse(jsonMatch[0]);
+
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'Você é um assistente especializado em priorização de tarefas. Responda apenas com JSON válido.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) throw new Error('Resposta vazia da IA');
+    const parsed = JSON.parse(response);
     
     return {
-      ...state,
-      priorityDecision: parsed,
-      confidence: Math.min(state.confidence, parsed.confidence || 0.8),
+      success: true,
+      data: parsed,
+      confidence: parsed.confidence || 0.8,
+      reasoning: parsed.reasoning
     };
   } catch (error) {
     return {
-      ...state,
-      errors: [...state.errors, `Erro no agente de priorização: ${error}`],
-      confidence: Math.max(0, state.confidence - 0.2),
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      confidence: 0,
+      reasoning: 'Falha na priorização'
     };
   }
 }
 
-// 5. AGENTE DE FINALIZAÇÃO (FINALIZER)
-async function finalizerAgent(state: AgentState): Promise<AgentState> {
+// 5. FINALIZER AGENT - Consolida tudo em uma tarefa final
+async function finalizerAgent(
+  state: AgentState
+): Promise<AgentState> {
   try {
     if (!state.taskPlan || !state.priorityDecision) {
-      throw new Error('Dados insuficientes para finalizar');
+      throw new Error('Dados insuficientes para finalização');
     }
 
-    // Criar tarefa final
     const finalTask: Task = {
       id: crypto.randomUUID(),
       workspace_id: '', // Será definido pelo contexto
+      project_id: undefined,
       title: state.taskPlan.title,
       description: state.taskPlan.description,
       status: 'todo',
@@ -268,7 +314,13 @@ async function finalizerAgent(state: AgentState): Promise<AgentState> {
         status: 'todo',
         order_index: subtask.order_index,
       })),
-      entities: state.parsedInput?.entities || [],
+      entities: state.parsedInput?.entities?.map(entity => ({
+        id: '',
+        workspace_id: '',
+        type: entity.type as 'client' | 'person' | 'tag',
+        name: entity.value,
+        metadata: {},
+      })) || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -286,127 +338,82 @@ async function finalizerAgent(state: AgentState): Promise<AgentState> {
   }
 }
 
-// Função de decisão para roteamento
-function shouldContinue(state: AgentState): string {
-  if (state.errors.length > 0) {
-    return 'error';
-  }
-  
-  if (state.finalTask) {
-    return 'end';
-  }
-  
-  return 'continue';
-}
-
-// Criar o grafo de agentes
-export function createAgentGraph() {
-  const workflow = new StateGraph<AgentState>({
-    channels: {
-      input: { reducer: (x: string, y: string) => y },
-      parsedInput: { reducer: (x: any, y: any) => y },
-      existingTasks: { reducer: (x: Task[], y: Task[]) => y },
-      linkDecision: { reducer: (x: any, y: any) => y },
-      taskPlan: { reducer: (x: any, y: any) => y },
-      priorityDecision: { reducer: (x: any, y: any) => y },
-      finalTask: { reducer: (x: any, y: any) => y },
-      userContext: { reducer: (x: any, y: any) => y },
-      errors: { reducer: (x: string[], y: string[]) => [...x, ...y] },
-      confidence: { reducer: (x: number, y: number) => y },
-    },
-  });
-
-  // Adicionar nós
-  workflow.addNode('intake', intakeAgent);
-  workflow.addNode('linker', linkerAgent);
-  workflow.addNode('planner', plannerAgent);
-  workflow.addNode('prioritizer', prioritizerAgent);
-  workflow.addNode('finalizer', finalizerAgent);
-
-  // Adicionar arestas
-  workflow.addEdge('intake', 'linker');
-  workflow.addEdge('linker', 'planner');
-  workflow.addEdge('planner', 'prioritizer');
-  workflow.addEdge('prioritizer', 'finalizer');
-  workflow.addEdge('finalizer', END);
-
-  // Adicionar condicionais
-  workflow.addConditionalEdges('intake', shouldContinue, {
-    error: END,
-    continue: 'linker',
-    end: END,
-  });
-
-  workflow.addConditionalEdges('linker', shouldContinue, {
-    error: END,
-    continue: 'planner',
-    end: END,
-  });
-
-  workflow.addConditionalEdges('planner', shouldContinue, {
-    error: END,
-    continue: 'prioritizer',
-    end: END,
-  });
-
-  workflow.addConditionalEdges('prioritizer', shouldContinue, {
-    error: END,
-    continue: 'finalizer',
-    end: END,
-  });
-
-  return workflow.compile();
-}
-
-// Função principal para processar entrada do usuário
+// Função principal para processar entrada do usuário (versão simplificada)
 export async function processUserInput(
   input: string,
   existingTasks: Task[] = [],
-  userContext?: UserContext
-): Promise<AgentResponse<Task>> {
+  workspaceId: string = '',
+  userContext?: any
+): Promise<AgentState> {
+  let state: AgentState = {
+    input,
+    existingTasks,
+    userContext,
+    errors: [],
+    confidence: 1.0,
+  };
+
   try {
-    const graph = createAgentGraph();
+    // 1. Intake Agent
+    const intakeResult = await intakeAgent(input);
+    if (!intakeResult.success) {
+      state.errors.push(intakeResult.error || 'Erro no agente de entrada');
+      state.confidence = Math.max(0, state.confidence - 0.2);
+      return state;
+    }
+    state.parsedInput = intakeResult.data;
+    state.confidence = Math.min(1.0, state.confidence * intakeResult.confidence);
+
+    // 2. Linker Agent
+    const linkerResult = await linkerAgent(intakeResult.data, existingTasks);
+    if (!linkerResult.success) {
+      state.errors.push(linkerResult.error || 'Erro no agente de vinculação');
+      state.confidence = Math.max(0, state.confidence - 0.2);
+      return state;
+    }
+    state.linkDecision = linkerResult.data;
+    state.confidence = Math.min(1.0, state.confidence * linkerResult.confidence);
+
+    // 3. Planner Agent
+    const plannerResult = await plannerAgent(intakeResult.data, linkerResult.data);
+    if (!plannerResult.success) {
+      state.errors.push(plannerResult.error || 'Erro no agente de planejamento');
+      state.confidence = Math.max(0, state.confidence - 0.2);
+      return state;
+    }
+    state.taskPlan = plannerResult.data;
+    state.confidence = Math.min(1.0, state.confidence * plannerResult.confidence);
+
+    // 4. Prioritizer Agent
+    const prioritizerResult = await prioritizerAgent(plannerResult.data, userContext);
+    if (!prioritizerResult.success) {
+      state.errors.push(prioritizerResult.error || 'Erro no agente de priorização');
+      state.confidence = Math.max(0, state.confidence - 0.2);
+      return state;
+    }
+    state.priorityDecision = prioritizerResult.data;
+    state.confidence = Math.min(1.0, state.confidence * prioritizerResult.confidence);
+
+    // 5. Finalizer Agent
+    state = await finalizerAgent(state);
     
-    const initialState: AgentState = {
-      input,
-      existingTasks,
-      userContext,
-      errors: [],
-      confidence: 1.0,
-    };
-
-    const result = await graph.invoke(initialState);
-
-    if (result.errors.length > 0) {
-      return {
-        success: false,
-        error: result.errors.join('; '),
-        confidence: result.confidence,
-        reasoning: 'Erro no processamento da entrada',
-      };
+    // Definir workspace_id na tarefa final
+    if (state.finalTask) {
+      state.finalTask.workspace_id = workspaceId;
+      if (state.finalTask.subtasks) {
+        state.finalTask.subtasks = state.finalTask.subtasks.map(subtask => ({
+          ...subtask,
+          task_id: state.finalTask!.id,
+        }));
+      }
     }
 
-    if (!result.finalTask) {
-      return {
-        success: false,
-        error: 'Tarefa não foi gerada',
-        confidence: result.confidence,
-        reasoning: 'Falha na geração da tarefa',
-      };
-    }
-
-    return {
-      success: true,
-      data: result.finalTask,
-      confidence: result.confidence,
-      reasoning: 'Tarefa processada com sucesso',
-    };
+    return state;
   } catch (error) {
     return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      ...state,
+      errors: [...state.errors, `Erro geral: ${error}`],
       confidence: 0,
-      reasoning: 'Falha no processamento',
     };
   }
 }

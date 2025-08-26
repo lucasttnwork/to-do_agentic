@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import ParticlesBackground from '@/components/shared/ParticlesBackground';
 import Sidebar from '@/components/dashboard/Sidebar';
-import { Menu } from 'lucide-react';
 
 export default function DashboardLayout({
   children,

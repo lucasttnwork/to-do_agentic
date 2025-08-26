@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Plus, Filter, MoreHorizontal } from 'lucide-react'
+import { Plus, MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
 export default function TaskBoard() {
@@ -28,17 +28,17 @@ export default function TaskBoard() {
       id: 'review', 
       title: 'Review', 
       count: 2, 
-      color: 'orange',
-      bgColor: 'bg-orange-500/10',
-      borderColor: 'border-orange-500/20'
+      color: 'purple',
+      bgColor: 'bg-purple-500/10',
+      borderColor: 'border-purple-500/20'
     },
     { 
       id: 'done', 
       title: 'Done', 
       count: 12, 
-      color: 'green',
-      bgColor: 'bg-green-500/10',
-      borderColor: 'border-green-500/20'
+      color: 'blue',
+      bgColor: 'bg-blue-600/10',
+      borderColor: 'border-blue-600/20'
     }
   ]
 
@@ -98,76 +98,65 @@ export default function TaskBoard() {
                 {/* Shimmer effect no hover */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-2xl" />
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full bg-${column.color}-500`} />
-                    <h3 className="font-semibold text-white text-lg">{column.title}</h3>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-slate-400 font-medium">{column.count}</span>
-                    <button className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-                      <MoreHorizontal className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-semibold text-white">{column.title}</h3>
+                  <span className="text-sm text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-600/30">
+                    {column.count}
+                  </span>
+                </div>
+                
+                {/* Progress bar sutil */}
+                <div className="h-1 bg-slate-700/50 rounded-full overflow-hidden">
+                  <div className={`h-full bg-gradient-to-r ${column.borderColor.replace('border-', 'from-').replace('/20', '')} to-transparent rounded-full`} style={{width: `${Math.min(column.count * 10, 100)}%`}}></div>
                 </div>
               </div>
               
-              {/* Tasks Area */}
+              {/* Column Content */}
               <div className="p-6">
-                <div className="space-y-4 min-h-[300px]">
-                  {/* Empty State */}
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center justify-center h-32 rounded-2xl border-2 border-dashed border-white/20 text-slate-400 hover:border-white/30 hover:bg-white/5 transition-all duration-300 cursor-pointer backdrop-blur-sm"
-                  >
-                    <div className="text-center">
-                      <Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      <span className="text-sm font-medium">Add task</span>
-                    </div>
-                  </motion.div>
-                  
-                  {/* Sample Task Cards - apenas para visualização */}
-                  {column.count > 0 && (
-                    <>
-                      <motion.div
-                        whileHover={{ y: -2 }}
-                        className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/10 transition-all duration-300 shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-medium text-white text-sm">Review client proposal</h4>
-                          <div className="w-2 h-2 bg-red-500 rounded-full" />
-                        </div>
-                        <p className="text-xs text-slate-400 mb-3">Due tomorrow</p>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                            <span className="text-xs text-white font-semibold">L</span>
-                          </div>
-                          <span className="text-xs text-slate-400">3 subtasks</span>
-                        </div>
-                      </motion.div>
+                <div className="space-y-3">
+                  {/* Placeholder cards */}
+                  {Array.from({ length: Math.min(column.count, 3) }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 + i * 0.1 }}
+                      className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="w-3 h-3 bg-slate-600 rounded-full mt-1"></div>
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                        </button>
+                      </div>
                       
-                      <motion.div
-                        whileHover={{ y: -2 }}
-                        className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/10 transition-all duration-300 shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-medium text-white text-sm">Update website content</h4>
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                      <div className="space-y-2">
+                        <div className="h-3 bg-slate-700/50 rounded w-3/4"></div>
+                        <div className="h-2 bg-slate-700/30 rounded w-1/2"></div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex space-x-1">
+                          <div className="w-6 h-6 bg-slate-700/50 rounded-full"></div>
                         </div>
-                        <p className="text-xs text-slate-400 mb-3">Due Friday</p>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
-                            <span className="text-xs text-white font-semibold">A</span>
-                          </div>
-                          <span className="text-xs text-slate-400">5 subtasks</span>
+                        <div className="text-xs text-slate-500">
+                          {Math.floor(Math.random() * 24) + 1}h
                         </div>
-                      </motion.div>
-                    </>
-                  )}
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {/* Add task button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    className="w-full p-3 border-2 border-dashed border-slate-600/30 rounded-xl text-slate-400 hover:text-slate-300 hover:border-slate-500/50 transition-all group"
+                  >
+                    <div className="flex items-center justify-center space-x-2">
+                      <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                      <span className="text-sm font-medium">Add Task</span>
+                    </div>
+                  </motion.button>
                 </div>
               </div>
-              
-              {/* Status Indicator */}
-              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-${column.color}-500 to-${column.color}-600`} />
             </motion.div>
           ))}
         </div>

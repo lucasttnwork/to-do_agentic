@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CheckCircle, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Task } from '@/types';
-import { cn } from '@/lib/utils';
 
 interface DashboardStatsProps {
   tasks: Task[];
@@ -47,35 +46,33 @@ export default function DashboardStats({ tasks }: DashboardStatsProps) {
     }).length
   };
 
-  const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
-
   const statCards = [
     {
       title: 'Total Tasks',
       value: stats.total,
-      icon: CheckCircle,
-      gradient: 'from-blue-500 to-purple-600',
+      icon: Target,
+      gradient: 'from-blue-500 to-blue-600',
       delay: 0
     },
     {
       title: 'Completed',
       value: stats.completed,
       icon: CheckCircle,
-      gradient: 'from-green-500 to-emerald-600',
+      gradient: 'from-blue-600 to-blue-700',
       delay: 0.1
     },
     {
       title: 'In Progress',
       value: stats.inProgress,
       icon: Clock,
-      gradient: 'from-yellow-500 to-orange-600',
+      gradient: 'from-purple-500 to-purple-600',
       delay: 0.2
     },
     {
       title: 'High Priority',
       value: stats.highPriority,
       icon: AlertTriangle,
-      gradient: 'from-red-500 to-pink-600',
+      gradient: 'from-red-500 to-purple-500',
       delay: 0.3
     }
   ];
@@ -99,18 +96,15 @@ export default function DashboardStats({ tasks }: DashboardStatsProps) {
             <stat.icon className="w-6 h-6 text-white" />
           </div>
           
-          {/* Número grande */}
-          <div className="text-3xl font-bold bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent mb-2">
+          {/* Número */}
+          <div className="text-3xl font-bold text-white mb-2">
             <AnimatedCounter value={stat.value} />
           </div>
           
-          {/* Label */}
+          {/* Título */}
           <div className="text-slate-400 font-medium">
             {stat.title}
           </div>
-          
-          {/* Glow effect no hover */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </motion.div>
       ))}
     </div>

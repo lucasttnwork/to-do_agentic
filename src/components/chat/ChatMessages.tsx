@@ -38,8 +38,8 @@ export function ChatMessages() {
         {messages.length === 0 ? (
           <Flex direction="column" align="center" justify="center" className="h-full text-center">
             <ChatBubbleIcon className="mb-4" width="48" height="48" />
-            <Text size="3" weight="medium">Bem-vindo ao seu assistente IA!</Text>
-            <Text size="2" color="gray" className="max-w-md">
+            <Text size="3" weight="medium" className="text-white">Bem-vindo ao seu assistente IA!</Text>
+            <Text size="2" color="gray" className="max-w-md text-slate-400">
               Comece digitando ou gravando uma mensagem para criar tarefas automaticamente. O sistema irá analisar e organizar suas tarefas de forma inteligente.
             </Text>
           </Flex>
@@ -49,7 +49,7 @@ export function ChatMessages() {
             const action = getAction(message.action);
             return (
               <Flex key={message.id} justify={isUser ? 'end' : 'start'}>
-                <Card size="2" variant={isUser ? 'classic' : 'surface'} className={`max-w-[80%] ${isUser ? 'bg-blue-600 text-white' : ''}`}>
+                <Card size="2" variant={isUser ? 'classic' : 'surface'} className={`max-w-[80%] ${isUser ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white' : 'backdrop-blur-sm bg-white/10 border border-white/20'}`}>
                   <Flex gap="2" align="start">
                     {!isUser && (
                       <Box mt="1">

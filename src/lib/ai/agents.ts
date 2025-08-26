@@ -49,7 +49,7 @@ export async function intakeAgent(input: string): Promise<AgentResponse<ParsedIn
     }
 
     const completion = await client.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um assistente especializado em análise de tarefas. Responda apenas com JSON válido.' },
         { role: 'user', content: prompt }
@@ -117,10 +117,10 @@ export async function linkerAgent(
     }
 
     const completion = await client.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um assistente especializado em decisões de vinculação de tarefas. Responda apenas com JSON válido.' },
-        { role: 'user', content: prompt }
+        {role: 'user', content: prompt }
       ],
       temperature: 0.1,
     });
@@ -195,7 +195,7 @@ export async function plannerAgent(
     }
 
     const completion = await client.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um assistente especializado em planejamento de tarefas. Responda apenas com JSON válido.' },
         { role: 'user', content: prompt }
@@ -265,7 +265,7 @@ export async function prioritizerAgent(
     }
 
     const completion = await client.chat.completions.create({
-      model: 'gpt-5',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'Você é um assistente especializado em priorização de tarefas. Responda apenas com JSON válido.' },
         { role: 'user', content: prompt }

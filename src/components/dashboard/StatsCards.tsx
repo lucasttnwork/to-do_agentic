@@ -34,7 +34,7 @@ export default function StatsCards() {
       value: 24,
       icon: Target,
       color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-500/10",
+      bgColor: "bg-blue-500/5",
       borderColor: "border-blue-500/20",
       shadowColor: "shadow-blue-500/25"
     },
@@ -42,33 +42,33 @@ export default function StatsCards() {
       title: "Completed",
       value: 18,
       icon: CheckCircle,
-      color: "from-green-500 to-green-600",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/20",
-      shadowColor: "shadow-green-500/25"
+      color: "from-blue-600 to-blue-700",
+      bgColor: "bg-blue-600/5",
+      borderColor: "border-blue-600/20",
+      shadowColor: "shadow-blue-600/25"
     },
     {
       title: "In Progress",
       value: 4,
       icon: Clock,
-      color: "from-orange-500 to-orange-600",
-      bgColor: "bg-orange-500/10",
-      borderColor: "border-orange-500/20",
-      shadowColor: "shadow-orange-500/25"
+      color: "from-purple-500 to-purple-600",
+      bgColor: "bg-purple-500/5",
+      borderColor: "border-purple-500/20",
+      shadowColor: "shadow-purple-500/25"
     },
     {
       title: "High Priority",
       value: 2,
       icon: AlertTriangle,
-      color: "from-red-500 to-red-600",
-      bgColor: "bg-red-500/10",
+      color: "from-red-500 to-purple-500",
+      bgColor: "bg-red-500/5",
       borderColor: "border-red-500/20",
       shadowColor: "shadow-red-500/25"
     }
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
       {stats.map((stat, index) => (
         <motion.div
           key={stat.title}

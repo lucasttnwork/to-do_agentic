@@ -33,20 +33,20 @@ export function TaskTimeline({ tasks }: TaskTimelineProps) {
           <div key={date} className="mb-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <h3 className="text-lg font-medium text-gray-900">{date}</h3>
-              <span className="text-sm text-gray-500">
+              <h3 className="text-lg font-medium text-white">{date}</h3>
+              <span className="text-sm text-slate-400">
                 {tasksByDate[date].length} tarefa{tasksByDate[date].length !== 1 ? 's' : ''}
               </span>
             </div>
             
             <div className="ml-6 space-y-3">
               {tasksByDate[date].map((task) => (
-                <div key={task.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={task.id} className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 mb-1">{task.title}</h4>
+                      <h4 className="font-medium text-white mb-1">{task.title}</h4>
                       {task.description && (
-                        <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                        <p className="text-sm text-slate-400 mb-2">{task.description}</p>
                       )}
                       
                       <div className="flex items-center gap-3">
@@ -55,7 +55,7 @@ export function TaskTimeline({ tasks }: TaskTimelineProps) {
                         </span>
                         
                         {task.effort_minutes && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <div className="flex items-center gap-1 text-xs text-slate-400">
                             <Clock className="w-3 h-3" />
                             {task.effort_minutes}min
                           </div>
@@ -63,7 +63,7 @@ export function TaskTimeline({ tasks }: TaskTimelineProps) {
                       </div>
                     </div>
                     
-                    <div className="text-right text-xs text-gray-500">
+                    <div className="text-right text-xs text-slate-400">
                       <div className="flex items-center gap-1 mb-1">
                         <Calendar className="w-3 h-3" />
                         Criado em {formatDate(task.created_at)}
@@ -80,8 +80,8 @@ export function TaskTimeline({ tasks }: TaskTimelineProps) {
         ))}
         
         {tasks.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-12 text-slate-500">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-400" />
             <h3 className="text-lg font-medium mb-2">Nenhuma tarefa agendada</h3>
             <p className="text-sm">Crie tarefas com prazos para vê-las na timeline</p>
           </div>

@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 :root {
+  /* Core Colors (Base do Sistema) */
+  --bg-primary: #0a0e1a;     /* Background principal */
+  --bg-secondary: #111827;   /* Cards e containers */
+  --bg-tertiary: #1f2937;    /* Hover states */
+  
+  /* Blue Spectrum (Funcional) */
+  --blue-50: #eff6ff;        /* Text hints */
+  --blue-100: #dbeafe;       /* Light accents */
+  --blue-300: #93c5fd;       /* Secondary text */
+  --blue-500: #3b82f6;       /* Primary actions */
+  --blue-600: #2563eb;       /* Primary hover */
+  --blue-700: #1d4ed8;       /* Active states */
+  --blue-900: #1e3a8a;       /* Deep accents */
+  
+  /* Purple Spectrum (Premium/AI) */
+  --purple-400: #a78bfa;     /* AI indicators */
+  --purple-500: #8b5cf6;     /* Premium features */
+  --purple-600: #7c3aed;     /* Premium hover */
+  
+  /* Neutral Tech (Structure) */
+  --slate-50: #f8fafc;       /* White text */
+  --slate-200: #e2e8f0;      /* Light gray text */
+  --slate-400: #94a3b8;      /* Medium gray text */
+  --slate-500: #64748b;      /* Dark gray text */
+  --slate-600: #475569;      /* Borders light */
+  --slate-700: #334155;      /* Borders medium */
+  --slate-800: #1e293b;      /* Borders dark */
+  
+  /* Accent Colors (Apenas para Status Críticos) */
+  --green-500: #10b981;      /* Success only */
+  --amber-500: #f59e0b;      /* Warning only */
+  --red-500: #ef4444;        /* Error only */
+
+  /* Legacy support */
   --background: 0 0% 100%;
   --foreground: 0 0% 3.9%;
   --card: 0 0% 100%;
@@ -85,6 +119,25 @@ body {
   box-shadow: 0 0 0 1px rgba(59,130,246,0.25), 0 0 40px rgba(59,130,246,0.15);
 }
 
+/* Tech gradient backgrounds */
+.tech-gradient {
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+}
+
+.card-gradient {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+}
+
+.glass-gradient {
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+}
+
+/* Grid pattern for background */
+.grid-pattern {
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
 /* Subtle space grid + vignette */
 .app-bg {
   background-image:
@@ -97,77 +150,62 @@ body {
   background-position: center, center, center, center, center;
 }
 
-/* Grid pattern for background */
-.bg-grid-pattern {
-  background-image: 
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
 }
 
-/* Line clamp utilities */
-.line-clamp-1 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
+@keyframes glow {
+  0% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+  100% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.8); }
 }
 
-.line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.line-clamp-3 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  background: rgba(15, 23, 42, 0.3);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(59, 130, 246, 0.5);
 }
 
-/* Animation delays */
-.delay-100 {
-  animation-delay: 100ms;
+/* Focus states */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-900;
 }
 
-.delay-200 {
-  animation-delay: 200ms;
+/* Hover effects */
+.hover-lift {
+  @apply transition-all duration-300 hover:scale-105 hover:-translate-y-1;
 }
 
-.delay-300 {
-  animation-delay: 300ms;
-}
-
-.delay-500 {
-  animation-delay: 500ms;
-}
-
-.delay-700 {
-  animation-delay: 700ms;
-}
-
-.delay-1000 {
-  animation-delay: 1000ms;
+.hover-glow {
+  @apply transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20;
 }

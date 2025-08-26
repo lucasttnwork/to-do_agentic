@@ -34,7 +34,7 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: 'Hi! I\'m your AI assistant ready to help organize your tasks. Tell me what you need to do!',
+        content: 'Bem-vindo ao seu assistente IA! Comece digitando ou gravando uma mensagem para criar tarefas automaticamente. O sistema irá analisar e organizar suas tarefas de forma inteligente.',
         timestamp: new Date().toISOString(),
       }])
     }
@@ -60,7 +60,7 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: 'Hi! I\'m your AI assistant ready to help organize your tasks. Tell me what you need to do!',
+        content: 'Bem-vindo ao seu assistente IA! Comece digitando ou gravando uma mensagem para criar tarefas automaticamente. O sistema irá analisar e organizar suas tarefas de forma inteligente.',
         timestamp: new Date().toISOString(),
       }])
     }
@@ -145,13 +145,13 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
       className="h-[500px] backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden relative"
     >
       {/* Background gradient */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-green-500/10 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none" />
       
       {/* Header */}
       <div className="p-8 border-b border-white/10 relative z-10">
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/25">
+            <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/25">
               <Brain className="w-7 h-7 text-white" />
             </div>
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-3 border-slate-950 rounded-full">
@@ -161,9 +161,9 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
           <div>
             <h2 className="text-xl font-bold text-white flex items-center">
               AI Assistant
-              <Sparkles className="w-5 h-5 ml-2 text-yellow-400" />
+              <Sparkles className="w-5 h-5 ml-2 text-blue-400" />
             </h2>
-            <p className="text-slate-400 text-sm">Ready to organize your world</p>
+            <p className="text-slate-400 text-sm">NTEX • Academia SP</p>
           </div>
         </div>
       </div>
@@ -226,7 +226,7 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
                     />
                   ))}
                 </div>
-                <span className="text-slate-300">AI is thinking...</span>
+                <span className="text-slate-300">IA está pensando...</span>
               </div>
             </div>
           </motion.div>
@@ -242,7 +242,7 @@ export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProp
             <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Tell me what you need to do... (try: 'Call client about project by Friday')"
+              placeholder="Digite ou segure para falar..."
               className="w-full bg-white/5 border border-white/20 rounded-2xl px-6 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 backdrop-blur-sm resize-none transition-all duration-200"
               rows={3}
               onKeyPress={(e) => {

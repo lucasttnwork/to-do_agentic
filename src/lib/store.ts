@@ -39,7 +39,7 @@ interface AppState {
   setViewMode: (mode: 'list' | 'kanban' | 'timeline') => void;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set) => ({
   // Usuário
   user: null,
   setUser: (user) => set({ user }),

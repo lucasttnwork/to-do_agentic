@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Task } from '@/types';
-import { mockTasks } from '@/lib/mock-data';
+import { supabase } from '@/lib/supabase/client';
+import { generateTaskEmbedding } from '@/lib/services/embedding-service';
 
 // GET - Listar tarefas
 export async function GET(req: NextRequest) {
@@ -17,14 +17,38 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Temporário: retornar do mock
-    const tasks = mockTasks
-      .filter(t => t.workspace_id === workspaceId)
-      .filter(t => !status || t.status === status)
-      .filter(t => !priority || String(t.priority) === String(priority))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    let query = supabase
+      .from('tasks')
+      .select(`
+        *,
+        projects (
+          id,
+          name,
+          client_id
+        )
+      `)
+      .eq('workspace_id', workspaceId);
 
-    return NextResponse.json({ success: true, tasks });
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    if (priority) {
+      query = query.eq('priority', priority);
+    }
+
+    const { data: tasks, error } = await query
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro Supabase:', error);
+      return NextResponse.json(
+        { error: 'Erro ao buscar tarefas' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, tasks: tasks || [] });
 
   } catch (error) {
     console.error('Erro ao buscar tarefas:', error);
@@ -39,7 +63,16 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const taskData = await req.json();
-    const { workspace_id, title, description, priority, due_date, effort_minutes } = taskData;
+    const { 
+      workspace_id, 
+      title, 
+      description, 
+      priority, 
+      due_date, 
+      effort_minutes,
+      project_id,
+      source_type = 'manual'
+    } = taskData;
 
     if (!workspace_id || !title) {
       return NextResponse.json(
@@ -48,19 +81,41 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const task: Task = {
-      id: Math.random().toString(36).slice(2),
-      workspace_id,
-      title,
-      description,
-      status: 'todo',
-      priority: (priority || 2) as 1 | 2 | 3,
-      due_date,
-      effort_minutes,
-      source_type: 'manual',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as Task;
+    // Gerar embedding para a tarefa
+    const embedding = await generateTaskEmbedding(title, description);
+    
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .insert({
+        workspace_id,
+        title,
+        description,
+        status: 'todo',
+        priority: (priority || 2) as 1 | 2 | 3,
+        due_date,
+        effort_minutes,
+        project_id,
+        source_type,
+        embedding,
+      })
+      .select(`
+        *,
+        projects (
+          id,
+          name,
+          client_id
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('Erro Supabase:', error);
+      return NextResponse.json(
+        { error: 'Erro ao criar tarefa' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ success: true, task });
 
   } catch (error) {
@@ -84,7 +139,31 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const task = { id, ...updates };
+    const { data: task, error } = await supabase
+      .from('tasks')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        projects (
+          id,
+          name,
+          client_id
+        )
+      `)
+      .single();
+
+    if (error) {
+      console.error('Erro Supabase:', error);
+      return NextResponse.json(
+        { error: 'Erro ao atualizar tarefa' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({ success: true, task });
 
   } catch (error) {
@@ -109,7 +188,20 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, message: 'Tarefa deletada (mock)' });
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro Supabase:', error);
+      return NextResponse.json(
+        { error: 'Erro ao deletar tarefa' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ success: true, message: 'Tarefa deletada com sucesso' });
 
   } catch (error) {
     console.error('Erro ao deletar tarefa:', error);

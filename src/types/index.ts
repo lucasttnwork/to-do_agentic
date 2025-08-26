@@ -32,7 +32,7 @@ export interface Task {
   priority: 1 | 2 | 3;
   effort_minutes?: number;
   due_date?: string;
-  source_type: 'manual' | 'audio' | 'whatsapp' | 'email';
+  source_type: 'manual' | 'audio' | 'whatsapp' | 'email' | 'ai_chat';
   source_content?: string;
   ai_confidence?: number;
   subtasks?: Subtask[];
@@ -65,6 +65,7 @@ export interface ChatMessage {
   timestamp: string;
   task_id?: string;
   action?: 'task_created' | 'task_updated' | 'task_completed';
+  metadata?: Record<string, any>;
 }
 
 // Tipos para os agentes de IA

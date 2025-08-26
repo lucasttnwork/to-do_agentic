@@ -5,6 +5,7 @@
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- Users table (extends Supabase auth.users)
 CREATE TABLE IF NOT EXISTS public.users (
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     source_type TEXT CHECK (source_type IN ('manual', 'audio', 'whatsapp', 'email', 'ai_chat')) DEFAULT 'manual',
     source_content TEXT,
     ai_confidence DECIMAL(3,2) CHECK (ai_confidence >= 0 AND ai_confidence <= 1),
+    embedding VECTOR(1536),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -423,3 +425,39 @@ $$ language 'plpgsql';
 CREATE TRIGGER create_default_workspace_trigger
     AFTER INSERT ON public.users
     FOR EACH ROW EXECUTE FUNCTION create_default_workspace();
+
+-- Create vector index for semantic search
+CREATE INDEX IF NOT EXISTS tasks_embedding_idx ON public.tasks 
+USING ivfflat (embedding vector_cosine_ops) 
+WITH (lists = 100);
+
+-- Create function for semantic search
+CREATE OR REPLACE FUNCTION search_tasks_semantic(
+    query_embedding VECTOR(1536),
+    workspace_id UUID,
+    match_threshold FLOAT DEFAULT 0.7,
+    match_count INT DEFAULT 10
+)
+RETURNS TABLE (
+    id UUID,
+    title TEXT,
+    description TEXT,
+    similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        t.id,
+        t.title,
+        t.description,
+        1 - (t.embedding <=> query_embedding) AS similarity
+    FROM public.tasks t
+    WHERE t.workspace_id = search_tasks_semantic.workspace_id
+        AND t.embedding IS NOT NULL
+        AND 1 - (t.embedding <=> query_embedding) > match_threshold
+    ORDER BY t.embedding <=> query_embedding
+    LIMIT match_count;
+END;
+$$;

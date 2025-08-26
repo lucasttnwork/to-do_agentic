@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
-import { Task, Subtask, Entity } from '@/types';
+import { Task, Subtask } from '@/types';
 
 export class TaskService {
   // Obter todas as tarefas de um workspace

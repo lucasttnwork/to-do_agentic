@@ -1,142 +1,82 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Float, Environment, OrbitControls } from '@react-three/drei';
+import { Suspense } from 'react';
+
+function FloatingParticles() {
+  return (
+    <>
+      {/* Floating spheres */}
+      <Float speed={2} rotationIntensity={1} floatIntensity={2}>
+        <mesh position={[-3, 2, -2]}>
+          <sphereGeometry args={[0.1, 16, 16]} />
+          <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} />
+        </mesh>
+      </Float>
+      
+      <Float speed={1.5} rotationIntensity={0.5} floatIntensity={1}>
+        <mesh position={[4, -1, -3]}>
+          <octahedronGeometry args={[0.15]} />
+          <meshBasicMaterial color="#8b5cf6" transparent opacity={0.2} wireframe />
+        </mesh>
+      </Float>
+      
+      <Float speed={2.5} rotationIntensity={1.5} floatIntensity={2.5}>
+        <mesh position={[-2, -2, -1]}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+          <meshBasicMaterial color="#3b82f6" transparent opacity={0.4} />
+        </mesh>
+      </Float>
+      
+      <Float speed={1.8} rotationIntensity={0.8} floatIntensity={1.8}>
+        <mesh position={[3, 1, -4]}>
+          <torusGeometry args={[0.08, 0.03, 8, 16]} />
+          <meshBasicMaterial color="#8b5cf6" transparent opacity={0.25} wireframe />
+        </mesh>
+      </Float>
+      
+      <Float speed={2.2} rotationIntensity={1.2} floatIntensity={2.2}>
+        <mesh position={[-4, 0, -3]}>
+          <icosahedronGeometry args={[0.12]} />
+          <meshBasicMaterial color="#3b82f6" transparent opacity={0.2} />
+        </mesh>
+      </Float>
+      
+      <Float speed={1.6} rotationIntensity={0.6} floatIntensity={1.6}>
+        <mesh position={[2, 3, -2]}>
+          <tetrahedronGeometry args={[0.1]} />
+          <meshBasicMaterial color="#8b5cf6" transparent opacity={0.3} wireframe />
+        </mesh>
+      </Float>
+    </>
+  );
+}
 
 export default function ParticlesBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Configurar canvas
-    const resizeCanvas = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      ctx.scale(dpr, dpr);
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
-    };
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Configurações das partículas premium
-    const particleCount = 50; // Mais partículas para efeito premium
-    const particles: Array<{
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      size: number;
-      opacity: number;
-      color: string;
-      type: 'blue' | 'purple' | 'emerald';
-    }> = [];
-
-    // Cores premium para as partículas
-    const colors = {
-      blue: 'rgba(59, 130, 246, 0.3)',
-      purple: 'rgba(147, 51, 234, 0.3)',
-      emerald: 'rgba(16, 185, 129, 0.3)'
-    };
-
-    // Criar partículas com tipos variados
-    for (let i = 0; i < particleCount; i++) {
-      const type = ['blue', 'purple', 'emerald'][Math.floor(Math.random() * 3)] as 'blue' | 'purple' | 'emerald';
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.4 + 0.1,
-        color: colors[type],
-        type
-      });
-    }
-
-    let animationId: number;
-
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Desenhar conexões entre partículas próximas
-      particles.forEach((particle, i) => {
-        particles.slice(i + 1).forEach((otherParticle) => {
-          const dx = particle.x - otherParticle.x;
-          const dy = particle.y - otherParticle.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-          
-          if (distance < 100) {
-            ctx.beginPath();
-            ctx.moveTo(particle.x, particle.y);
-            ctx.lineTo(otherParticle.x, otherParticle.y);
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.02 * (1 - distance / 100)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        });
-      });
-
-      particles.forEach((particle) => {
-        // Atualizar posição
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-
-        // Borda com wrap-around suave
-        if (particle.x < 0) particle.x = canvas.width;
-        if (particle.x > canvas.width) particle.x = 0;
-        if (particle.y < 0) particle.y = canvas.height;
-        if (particle.y > canvas.height) particle.y = 0;
-
-        // Desenhar partícula com glow effect
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        
-        // Glow effect
-        const gradient = ctx.createRadialGradient(
-          particle.x, particle.y, 0,
-          particle.x, particle.y, particle.size * 2
-        );
-        gradient.addColorStop(0, particle.color);
-        gradient.addColorStop(1, 'transparent');
-        
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        
-        // Partícula central
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.size * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = particle.color;
-        ctx.fill();
-      });
-
-      animationId = requestAnimationFrame(animate);
-    }
-
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-    };
-  }, []);
-
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed inset-0 pointer-events-none z-0 w-full h-full"
-      style={{ background: 'transparent' }}
-    />
+    <div className="fixed inset-0 z-0">
+      <Canvas 
+        camera={{ position: [0, 0, 5], fov: 75 }}
+        style={{ background: 'transparent' }}
+      >
+        <Suspense fallback={null}>
+          <ambientLight intensity={0.2} />
+          <pointLight position={[10, 10, 10]} intensity={0.3} color="#3b82f6" />
+          <pointLight position={[-10, -10, -10]} intensity={0.2} color="#8b5cf6" />
+          
+          <FloatingParticles />
+          
+          <Environment preset="city" />
+          <OrbitControls 
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+            autoRotate
+            autoRotateSpeed={0.5}
+          />
+        </Suspense>
+      </Canvas>
+    </div>
   );
 }
