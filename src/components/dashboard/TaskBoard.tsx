@@ -1,231 +1,177 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Plus, Filter, Search } from 'lucide-react';
-import GlassCard from '@/components/ui/GlassCard';
-import CreateTaskModal from './CreateTaskModal';
-import DashboardStats from './DashboardStats';
-import { Task } from '@/types';
-import { cn } from '@/lib/utils';
-
-const statusColumns = [
-  { id: 'todo', title: 'To Do', color: 'bg-slate-500' },
-  { id: 'in_progress', title: 'In Progress', color: 'bg-blue-500' },
-  { id: 'done', title: 'Done', color: 'bg-green-500' }
-];
-
-const priorityColors = {
-  1: 'border-red-500 bg-red-500/10',
-  2: 'border-yellow-500 bg-yellow-500/10',
-  3: 'border-blue-500 bg-blue-500/10'
-};
+import { motion } from 'framer-motion'
+import { Plus, Filter, MoreHorizontal } from 'lucide-react'
+import { useState } from 'react'
 
 export default function TaskBoard() {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPriority, setSelectedPriority] = useState<string>('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async () => {
-    try {
-      const response = await fetch('/api/tasks?workspace_id=personal');
-      const data = await response.json();
-      
-      if (data.success) {
-        setTasks(data.tasks);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar tarefas:', error);
-    } finally {
-      setLoading(false);
+  const [filter, setFilter] = useState('all')
+  
+  const columns = [
+    { 
+      id: 'todo', 
+      title: 'To Do', 
+      count: 8, 
+      color: 'slate',
+      bgColor: 'bg-slate-500/10',
+      borderColor: 'border-slate-500/20'
+    },
+    { 
+      id: 'progress', 
+      title: 'In Progress', 
+      count: 3, 
+      color: 'blue',
+      bgColor: 'bg-blue-500/10',
+      borderColor: 'border-blue-500/20'
+    },
+    { 
+      id: 'review', 
+      title: 'Review', 
+      count: 2, 
+      color: 'orange',
+      bgColor: 'bg-orange-500/10',
+      borderColor: 'border-orange-500/20'
+    },
+    { 
+      id: 'done', 
+      title: 'Done', 
+      count: 12, 
+      color: 'green',
+      bgColor: 'bg-green-500/10',
+      borderColor: 'border-green-500/20'
     }
-  };
-
-  const createTask = async (taskData: any) => {
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskData)
-      });
-
-      if (response.ok) {
-        await fetchTasks(); // Recarregar tarefas
-      }
-    } catch (error) {
-      console.error('Erro ao criar tarefa:', error);
-    }
-  };
-
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         task.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = selectedPriority === 'all' || task.priority.toString() === selectedPriority;
-    return matchesSearch && matchesPriority;
-  });
-
-  const getTasksByStatus = (status: string) => {
-    return filteredTasks.filter(task => task.status === status);
-  };
-
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-  };
-
-  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData('taskId');
-    
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, status: newStatus })
-      });
-
-      if (response.ok) {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, status: newStatus as any } : task
-        ));
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar tarefa:', error);
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-slate-400">Carregando tarefas...</p>
-        </div>
-      </div>
-    );
-  }
+  ]
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <motion.div
+      initial={{ opacity: 0, x: 50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.6 }}
+      className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl shadow-black/20 overflow-hidden relative"
+    >
+      {/* Background gradient sutil */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Task Board</h1>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:shadow-lg transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Task</span>
-          </button>
-        </div>
-
-        {/* Stats */}
-        <DashboardStats tasks={tasks} />
-
-        {/* Filters */}
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50"
-            />
+      <div className="p-8 border-b border-white/10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-white">Task Board</h2>
+            <p className="text-slate-400 mt-1">Organize and track your progress</p>
           </div>
           
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:border-blue-500/50"
-          >
-            <option value="all">All Priorities</option>
-            <option value="1">Priority 1</option>
-            <option value="2">Priority 2</option>
-            <option value="3">Priority 3</option>
-          </select>
+          <div className="flex items-center space-x-3">
+            <select 
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-white/5 border border-white/20 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50 backdrop-blur-sm"
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">High Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+            
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-2 rounded-xl font-semibold text-white shadow-lg shadow-blue-500/25 flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Task</span>
+            </motion.button>
+          </div>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 flex space-x-6 overflow-x-auto">
-        {statusColumns.map((column) => (
-          <div key={column.id} className="flex-shrink-0 w-80">
-            <GlassCard className="h-full p-4">
+      {/* Kanban Columns */}
+      <div className="p-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {columns.map((column, index) => (
+            <motion.div
+              key={column.id}
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className={`backdrop-blur-xl bg-white/5 border ${column.borderColor} rounded-2xl overflow-hidden relative shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 group`}
+            >
               {/* Column Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className={cn('w-3 h-3 rounded-full', column.color)} />
-                  <h3 className="font-semibold">{column.title}</h3>
-                  <span className="text-sm text-slate-400">
-                    ({getTasksByStatus(column.id).length})
-                  </span>
+              <div className="p-6 border-b border-white/10 relative z-10">
+                {/* Shimmer effect no hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-t-2xl" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full bg-${column.color}-500`} />
+                    <h3 className="font-semibold text-white text-lg">{column.title}</h3>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-slate-400 font-medium">{column.count}</span>
+                    <button className="p-1 hover:bg-white/10 rounded-lg transition-colors">
+                      <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Tasks */}
-              <div
-                className="space-y-3 min-h-[400px]"
-                onDrop={(e) => handleDrop(e, column.id)}
-                onDragOver={handleDragOver}
-              >
-                {getTasksByStatus(column.id).map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    className="p-4 bg-white/5 border border-white/10 rounded-lg cursor-move hover:bg-white/10 transition-all"
+              
+              {/* Tasks Area */}
+              <div className="p-6">
+                <div className="space-y-4 min-h-[300px]">
+                  {/* Empty State */}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    className="flex items-center justify-center h-32 rounded-2xl border-2 border-dashed border-white/20 text-slate-400 hover:border-white/30 hover:bg-white/5 transition-all duration-300 cursor-pointer backdrop-blur-sm"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-sm line-clamp-2">{task.title}</h4>
-                      <div className={cn(
-                        'px-2 py-1 rounded text-xs border',
-                        priorityColors[task.priority as keyof typeof priorityColors]
-                      )}>
-                        P{task.priority}
-                      </div>
+                    <div className="text-center">
+                      <Plus className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <span className="text-sm font-medium">Add task</span>
                     </div>
-                    
-                    {task.description && (
-                      <p className="text-xs text-slate-400 line-clamp-2 mb-2">
-                        {task.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>
-                        {task.effort_minutes ? `${task.effort_minutes}min` : 'No estimate'}
-                      </span>
-                      {task.due_date && (
-                        <span>
-                          {new Date(task.due_date).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  </motion.div>
+                  
+                  {/* Sample Task Cards - apenas para visualização */}
+                  {column.count > 0 && (
+                    <>
+                      <motion.div
+                        whileHover={{ y: -2 }}
+                        className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/10 transition-all duration-300 shadow-sm hover:shadow-md"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-medium text-white text-sm">Review client proposal</h4>
+                          <div className="w-2 h-2 bg-red-500 rounded-full" />
+                        </div>
+                        <p className="text-xs text-slate-400 mb-3">Due tomorrow</p>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white font-semibold">L</span>
+                          </div>
+                          <span className="text-xs text-slate-400">3 subtasks</span>
+                        </div>
+                      </motion.div>
+                      
+                      <motion.div
+                        whileHover={{ y: -2 }}
+                        className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl p-4 hover:border-white/20 hover:bg-white/10 transition-all duration-300 shadow-sm hover:shadow-md"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-medium text-white text-sm">Update website content</h4>
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                        </div>
+                        <p className="text-xs text-slate-400 mb-3">Due Friday</p>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-white font-semibold">A</span>
+                          </div>
+                          <span className="text-xs text-slate-400">5 subtasks</span>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </div>
               </div>
-            </GlassCard>
-          </div>
-        ))}
+              
+              {/* Status Indicator */}
+              <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-${column.color}-500 to-${column.color}-600`} />
+            </motion.div>
+          ))}
+        </div>
       </div>
-
-      {/* Create Task Modal */}
-      <CreateTaskModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={createTask}
-      />
-    </div>
-  );
+    </motion.div>
+  )
 }
