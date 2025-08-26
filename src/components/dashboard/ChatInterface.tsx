@@ -1,188 +1,290 @@
-'use client';
+'use client'
 
-import { useState, useRef } from 'react';
-import { Send, Mic, Square } from 'lucide-react';
-import GlassCard from '@/components/ui/GlassCard';
-import LoadingSpinner from '@/components/shared/LoadingSpinner';
-import { cn } from '@/lib/utils';
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Send, Mic, Square, Brain, Sparkles } from 'lucide-react'
+import { ChatMessage } from '@/types'
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  taskId?: string;
+interface ChatInterfaceProps {
+  workspaceId?: string
+  userId?: string
 }
 
-export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+export default function ChatInterface({ workspaceId, userId }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputValue, setInputValue] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  // Carregar histórico inicial
+  useEffect(() => {
+    if (workspaceId && userId) {
+      loadChatHistory()
+    } else {
+      // Mensagem de boas-vindas padrão
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: 'Hi! I\'m your AI assistant ready to help organize your tasks. Tell me what you need to do!',
+        timestamp: new Date().toISOString(),
+      }])
+    }
+  }, [workspaceId, userId])
+
+  const loadChatHistory = async () => {
+    try {
+      const response = await fetch(`/api/ai/process?workspaceId=${workspaceId}&limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.messages) {
+          setMessages(data.messages)
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error)
+      // Mensagem de boas-vindas em caso de erro
+      setMessages([{
+        id: 'welcome',
+        role: 'assistant',
+        content: 'Hi! I\'m your AI assistant ready to help organize your tasks. Tell me what you need to do!',
+        timestamp: new Date().toISOString(),
+      }])
+    }
+  }
 
   const sendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !workspaceId || !userId) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
       role: 'user',
       content: inputValue,
-      timestamp: new Date()
-    };
+      timestamp: new Date().toISOString(),
+    }
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setIsProcessing(true);
+    setMessages(prev => [...prev, userMessage])
+    setInputValue('')
+    setIsProcessing(true)
 
     try {
-      // Chamar API de processamento de IA
       const response = await fetch('/api/ai/process', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`,
         },
         body: JSON.stringify({
-          message: inputValue,
-          workspace_id: 'personal' // Temporário
+          content: inputValue,
+          workspaceId,
         }),
-      });
+      })
 
-      const result = await response.json();
-
-      if (result.success) {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: `✅ Criei a tarefa "${result.task?.title || 'Nova tarefa'}" com prioridade P${result.task?.priority || 2}. ${result.task?.description || ''}`,
-          timestamp: new Date(),
-          taskId: result.task?.id
-        };
-        setMessages(prev => [...prev, aiMessage]);
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.message) {
+          setMessages(prev => [...prev, data.message])
+          
+          // Se uma tarefa foi criada, você pode atualizar o dashboard aqui
+          if (data.task) {
+            // Emitir evento para atualizar o dashboard
+            window.dispatchEvent(new CustomEvent('taskCreated', { detail: data.task }))
+          }
+        } else {
+          // Mensagem de erro
+          const errorMessage: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: data.error || 'Erro ao processar sua mensagem. Tente novamente.',
+            timestamp: new Date().toISOString(),
+          }
+          setMessages(prev => [...prev, errorMessage])
+        }
       } else {
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: '❌ Desculpe, houve um erro ao processar sua solicitação.',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, errorMessage]);
+        throw new Error('Erro na requisição')
       }
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      console.error('Erro ao enviar mensagem:', error)
+      const errorMessage: ChatMessage = {
+        id: crypto.randomUUID(),
         role: 'assistant',
-        content: '❌ Erro de conexão. Tente novamente.',
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
+        timestamp: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
-      setIsProcessing(false);
+      setIsProcessing(false)
     }
-  };
+  }
 
-  const handleVoiceRecording = async () => {
-    if (!isRecording) {
-      setIsRecording(true);
-      // Implementar gravação de áudio aqui
-    } else {
-      setIsRecording(false);
-      // Parar gravação e enviar para transcrição
-    }
-  };
+  const formatTimestamp = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
+  }
 
   return (
-    <div className="h-full flex flex-col">
-      <GlassCard className="flex-1 flex flex-col p-0 overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-semibold flex items-center">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse" />
-            AI Assistant
-          </h2>
-          <p className="text-slate-400 text-sm mt-1">
-            Capture tasks naturally with voice or text
-          </p>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-auto p-6 space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                'flex',
-                message.role === 'user' ? 'justify-end' : 'justify-start'
-              )}
-            >
-              <div className={cn(
-                'max-w-[80%] rounded-2xl px-4 py-3',
-                message.role === 'user'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                  : 'backdrop-blur-sm bg-white/5 border border-white/10 text-slate-100'
-              )}>
-                <p>{message.content}</p>
-                <span className="text-xs opacity-70 mt-1 block">
-                  {message.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
+    <motion.div
+      initial={{ opacity: 0, x: -50 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.6 }}
+      className="h-[500px] backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl shadow-2xl shadow-black/20 flex flex-col overflow-hidden relative"
+    >
+      {/* Background gradient */}
+      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-green-500/10 to-transparent pointer-events-none" />
+      
+      {/* Header */}
+      <div className="p-8 border-b border-white/10 relative z-10">
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/25">
+              <Brain className="w-7 h-7 text-white" />
             </div>
-          ))}
-
-          {/* Processing Indicator */}
-          {isProcessing && (
-            <div className="flex justify-start">
-              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
-                <div className="flex items-center space-x-2">
-                  <LoadingSpinner size="sm" />
-                  <span className="text-slate-300">Processing...</span>
-                </div>
-              </div>
+            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-3 border-slate-950 rounded-full">
+              <div className="w-full h-full bg-green-400 rounded-full animate-ping" />
             </div>
-          )}
-        </div>
-
-        {/* Input */}
-        <div className="p-6 border-t border-white/10">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1 relative">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Describe your task or say what you need to do..."
-                className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 backdrop-blur-sm resize-none"
-                rows={1}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-              />
-            </div>
-            
-            <button
-              onMouseDown={() => setIsRecording(true)}
-              onMouseUp={() => setIsRecording(false)}
-              className={cn(
-                'p-3 rounded-xl transition-all duration-200',
-                isRecording
-                  ? 'bg-red-500 text-white'
-                  : 'bg-white/5 border border-white/20 text-slate-300 hover:bg-white/10'
-              )}
-            >
-              {isRecording ? <Square className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
-
-            <button
-              onClick={sendMessage}
-              disabled={!inputValue.trim()}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-3 rounded-xl hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send className="w-5 h-5" />
-            </button>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center">
+              AI Assistant
+              <Sparkles className="w-5 h-5 ml-2 text-yellow-400" />
+            </h2>
+            <p className="text-slate-400 text-sm">Ready to organize your world</p>
           </div>
         </div>
-      </GlassCard>
-    </div>
-  );
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-auto p-8 space-y-6">
+        <AnimatePresence>
+          {messages.map((message, index) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[85%] ${
+                message.role === 'user'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
+                  : 'backdrop-blur-sm bg-white/10 border border-white/20 text-slate-100 shadow-lg'
+              } rounded-2xl px-6 py-4 relative overflow-hidden`}>
+                
+                {/* Message content */}
+                <div 
+                  className="relative z-10 leading-relaxed"
+                  dangerouslySetInnerHTML={{ 
+                    __html: message.content.replace(/\n/g, '<br/>') 
+                  }}
+                />
+                
+                {/* Timestamp */}
+                <span className="text-xs opacity-60 mt-3 block relative z-10">
+                  {formatTimestamp(message.timestamp)}
+                </span>
+                
+                {/* Glow effect for user messages */}
+                {message.role === 'user' && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-xl" />
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Processing Indicator */}
+        {isProcessing && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-start"
+          >
+            <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-2xl px-6 py-4 shadow-lg">
+              <div className="flex items-center space-x-3">
+                <div className="flex space-x-2">
+                  {[0, 1, 2].map(i => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                      style={{ animationDelay: `${i * 0.2}s` }}
+                    />
+                  ))}
+                </div>
+                <span className="text-slate-300">AI is thinking...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="p-8 border-t border-white/10 relative">
+        <div className="flex items-end space-x-4">
+          <div className="flex-1 relative">
+            <textarea
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Tell me what you need to do... (try: 'Call client about project by Friday')"
+              className="w-full bg-white/5 border border-white/20 rounded-2xl px-6 py-4 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 backdrop-blur-sm resize-none transition-all duration-200"
+              rows={3}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  sendMessage()
+                }
+              }}
+              disabled={isProcessing}
+            />
+          </div>
+          
+          <div className="flex flex-col space-y-3">
+            {/* Mic Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onMouseDown={() => setIsRecording(true)}
+              onMouseUp={() => setIsRecording(false)}
+              disabled={isProcessing}
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-200 ${
+                isRecording
+                  ? 'bg-red-500 text-white shadow-red-500/25'
+                  : 'bg-white/5 border border-white/20 text-slate-300 hover:bg-white/10 backdrop-blur-sm'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isRecording ? <Square className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            </motion.button>
+
+            {/* Send Button */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={sendMessage}
+              disabled={!inputValue.trim() || isProcessing}
+              className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-6 h-6 text-white" />
+            </motion.button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
