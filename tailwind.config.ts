@@ -66,11 +66,20 @@ const config: Config = {
       },
       backdropBlur: {
         'xs': '2px',
+        'sm': '4px',
+        'md': '12px',
+        'lg': '16px',
+        'xl': '24px',
+        '2xl': '40px',
+        '3xl': '64px',
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
         'shimmer': 'shimmer 2s linear infinite',
+        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+        'slide-in-left': 'slideInLeft 0.8s ease-out forwards',
+        'slide-in-right': 'slideInRight 0.8s ease-out forwards',
       },
       keyframes: {
         float: {
@@ -85,6 +94,44 @@ const config: Config = {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
+        fadeInUp: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(30px)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
+        slideInLeft: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateX(-50px)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateX(0)',
+          },
+        },
+        slideInRight: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateX(50px)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateX(0)',
+          },
+        },
+      },
+      boxShadow: {
+        'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
+        'glass-hover': '0 20px 40px rgba(0, 0, 0, 0.4)',
+        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.3)',
+        'glow-purple': '0 0 20px rgba(147, 51, 234, 0.3)',
+        'glow-green': '0 0 20px rgba(34, 197, 94, 0.3)',
+        'glow-red': '0 0 20px rgba(239, 68, 68, 0.3)',
       },
     },
   },

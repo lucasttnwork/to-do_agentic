@@ -1,4 +1,4 @@
-import { Task, ParsedInput, LinkDecision, TaskPlan, PriorityDecision, AgentResponse } from '@/types';
+import { Task, ParsedInput, LinkDecision, TaskPlan, PriorityDecision, AgentResponse, UserContext } from '@/types';
 import { getOpenAI } from './openai-client';
 
 // Estado compartilhado entre agentes
@@ -10,7 +10,7 @@ export interface AgentState {
   taskPlan?: TaskPlan;
   priorityDecision?: PriorityDecision;
   finalTask?: Task;
-  userContext?: any;
+  userContext?: UserContext;
   errors: string[];
   confidence: number;
 }
@@ -112,17 +112,18 @@ async function linkerAgent(
     if (!client) {
       const fallback: LinkDecision = {
         decision: 'create_new',
+        target_task_id: undefined,
         reasoning: 'Fallback sem OPENAI_API_KEY',
         confidence: 0.6,
       };
-      return { success: true, data: fallback, confidence: 0.6, reasoning: fallback.reasoning };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: 'Fallback sem OPENAI_API_KEY' };
     }
 
     const completion = await client.chat.completions.create({
       model: 'gpt-4o',
       messages: [
-        { role: 'system', content: 'Você é um assistente especializado em decisões de vinculação de tarefas. Responda apenas com JSON válido.' },
-        {role: 'user', content: prompt }
+        { role: 'system', content: 'Você é um assistente especializado em análise de tarefas. Responda apenas com JSON válido.' },
+        { role: 'user', content: prompt }
       ],
       temperature: 0.1,
     });
@@ -135,7 +136,7 @@ async function linkerAgent(
       success: true,
       data: parsed,
       confidence: parsed.confidence || 0.8,
-      reasoning: parsed.reasoning
+      reasoning: 'Decisão de vinculação concluída com sucesso'
     };
   } catch (error) {
     return {
@@ -147,29 +148,40 @@ async function linkerAgent(
   }
 }
 
-// 3. PLANNER AGENT - Cria plano de subtarefas
+// 3. PLANNER AGENT - Planeja tarefas complexas
 async function plannerAgent(
   parsedInput: ParsedInput,
   linkDecision: LinkDecision
 ): Promise<AgentResponse<TaskPlan>> {
   try {
+    if (linkDecision.decision !== 'create_new') {
+      return {
+        success: true,
+        data: {
+          title: parsedInput.action,
+          description: parsedInput.context || 'Sem descrição',
+          subtasks: [],
+          definition_of_done: 'Tarefa concluída',
+          estimated_minutes: 30,
+          confidence: 0.8,
+        },
+        confidence: 0.8,
+        reasoning: 'Tarefa simples, sem necessidade de planejamento'
+      };
+    }
+
     const client = getOpenAI();
     const prompt = `
-    Crie um plano detalhado para esta tarefa:
+    Planeje esta tarefa complexa:
 
     ENTRADA: ${JSON.stringify(parsedInput)}
-    DECISÃO: ${JSON.stringify(linkDecision)}
 
-    Retorne:
+    Retorne um plano estruturado:
     {
       "title": "título da tarefa",
       "description": "descrição detalhada",
       "subtasks": [
-        {
-          "title": "subtarefa 1",
-          "description": "descrição da subtarefa",
-          "order_index": 1
-        }
+        {"title": "subtarefa", "description": "descrição", "order_index": 1}
       ],
       "definition_of_done": "critérios de conclusão",
       "estimated_minutes": 120,
@@ -180,7 +192,7 @@ async function plannerAgent(
     if (!client) {
       const fallback: TaskPlan = {
         title: parsedInput.action,
-        description: 'Tarefa criada via fallback',
+        description: parsedInput.context || 'Sem descrição',
         subtasks: [],
         definition_of_done: 'Tarefa concluída',
         estimated_minutes: 60,
@@ -218,24 +230,26 @@ async function plannerAgent(
   }
 }
 
-// 4. PRIORITIZER AGENT - Define prioridade e prazo
-async function prioritizerAgent(
+// 4. PRIORITY AGENT - Define prioridade e prazo
+async function priorityAgent(
+  parsedInput: ParsedInput,
   taskPlan: TaskPlan,
-  userContext?: any
+  userContext: UserContext
 ): Promise<AgentResponse<PriorityDecision>> {
   try {
     const client = getOpenAI();
     const prompt = `
-    Defina a prioridade e prazo para esta tarefa:
+    Defina prioridade e prazo para esta tarefa:
 
+    ENTRADA: ${JSON.stringify(parsedInput)}
     PLANO: ${JSON.stringify(taskPlan)}
-    CONTEXTO DO USUÁRIO: ${JSON.stringify(userContext || {})}
+    CONTEXTO: ${JSON.stringify(userContext)}
 
     Considere:
-    - SLA do cliente (se aplicável)
-    - Urgência da tarefa
-    - Capacidade atual do usuário
-    - Dependências
+    - SLAs de clientes
+    - Tarefas P1 existentes
+    - Complexidade da tarefa
+    - Urgência natural
 
     Retorne:
     {
@@ -248,11 +262,12 @@ async function prioritizerAgent(
 
     if (!client) {
       const fallback: PriorityDecision = {
-        priority: 2,
-        reasoning: 'Prioridade média por padrão',
+        priority: parsedInput.priority,
+        suggested_due_date: undefined,
+        reasoning: 'Fallback sem OPENAI_API_KEY',
         confidence: 0.6,
       };
-      return { success: true, data: fallback, confidence: 0.6, reasoning: fallback.reasoning };
+      return { success: true, data: fallback, confidence: 0.6, reasoning: 'Fallback sem OPENAI_API_KEY' };
     }
 
     const completion = await client.chat.completions.create({
@@ -272,7 +287,7 @@ async function prioritizerAgent(
       success: true,
       data: parsed,
       confidence: parsed.confidence || 0.8,
-      reasoning: parsed.reasoning
+      reasoning: 'Priorização concluída com sucesso'
     };
   } catch (error) {
     return {
@@ -284,136 +299,152 @@ async function prioritizerAgent(
   }
 }
 
-// 5. FINALIZER AGENT - Consolida tudo em uma tarefa final
-async function finalizerAgent(
-  state: AgentState
-): Promise<AgentState> {
+// 5. EXECUTOR AGENT - Cria a tarefa final
+async function executorAgent(
+  parsedInput: ParsedInput,
+  linkDecision: LinkDecision,
+  taskPlan: TaskPlan,
+  priorityDecision: PriorityDecision,
+  existingTasks: Task[]
+): Promise<AgentResponse<Task>> {
   try {
-    if (!state.taskPlan || !state.priorityDecision) {
-      throw new Error('Dados insuficientes para finalização');
+    if (linkDecision.decision === 'attach_to' && linkDecision.target_task_id) {
+      // Anexar como subtarefa
+      const targetTask = existingTasks.find(t => t.id === linkDecision.target_task_id);
+      if (targetTask) {
+        const subtask: Task = {
+          id: crypto.randomUUID(),
+          workspace_id: targetTask.workspace_id,
+          project_id: targetTask.project_id,
+          title: taskPlan.title,
+          description: taskPlan.description,
+          status: 'todo',
+          priority: priorityDecision.priority,
+          effort_minutes: taskPlan.estimated_minutes,
+          source_type: 'ai_chat',
+          source_content: parsedInput.action,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        return {
+          success: true,
+          data: subtask,
+          confidence: 0.9,
+          reasoning: 'Subtarefa criada com sucesso'
+        };
+      }
     }
 
-    const finalTask: Task = {
+    // Criar nova tarefa
+    const task: Task = {
       id: crypto.randomUUID(),
-      workspace_id: '', // Será definido pelo contexto
-      project_id: undefined,
-      title: state.taskPlan.title,
-      description: state.taskPlan.description,
+      workspace_id: '', // Será definido pelo caller
+      title: taskPlan.title,
+      description: taskPlan.description,
       status: 'todo',
-      priority: state.priorityDecision.priority,
-      effort_minutes: state.taskPlan.estimated_minutes,
-      due_date: state.priorityDecision.suggested_due_date,
+      priority: priorityDecision.priority,
+      effort_minutes: taskPlan.estimated_minutes,
+      due_date: priorityDecision.suggested_due_date,
       source_type: 'ai_chat',
-      source_content: state.input,
-      ai_confidence: state.confidence,
-      subtasks: state.taskPlan.subtasks.map((subtask, index) => ({
+      source_content: parsedInput.action,
+      subtasks: taskPlan.subtasks.map((st, index) => ({
         id: crypto.randomUUID(),
         task_id: '', // Será definido após criação da tarefa
-        title: subtask.title,
-        description: subtask.description,
+        title: st.title,
+        description: st.description,
         status: 'todo',
-        order_index: subtask.order_index,
+        order_index: index + 1,
       })),
-      entities: state.parsedInput?.entities?.map(entity => ({
-        id: '',
-        workspace_id: '',
-        type: entity.type as 'client' | 'person' | 'tag',
-        name: entity.value,
-        metadata: {},
-      })) || [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     return {
-      ...state,
-      finalTask,
+      success: true,
+      data: task,
+      confidence: 0.9,
+      reasoning: 'Tarefa criada com sucesso'
     };
   } catch (error) {
     return {
-      ...state,
-      errors: [...state.errors, `Erro no agente de finalização: ${error}`],
-      confidence: Math.max(0, state.confidence - 0.2),
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      confidence: 0,
+      reasoning: 'Falha na criação da tarefa'
     };
   }
 }
 
-// Função principal para processar entrada do usuário (versão simplificada)
+// Função principal que orquestra os agentes
 export async function processUserInput(
   input: string,
-  existingTasks: Task[] = [],
-  workspaceId: string = '',
-  userContext?: any
+  existingTasks: Task[],
+  workspaceId: string,
+  userContext: UserContext
 ): Promise<AgentState> {
-  let state: AgentState = {
+  const state: AgentState = {
     input,
     existingTasks,
-    userContext,
     errors: [],
-    confidence: 1.0,
+    confidence: 0,
   };
 
   try {
-    // 1. Intake Agent
+    // 1. Análise de entrada
     const intakeResult = await intakeAgent(input);
-    if (!intakeResult.success) {
-      state.errors.push(intakeResult.error || 'Erro no agente de entrada');
-      state.confidence = Math.max(0, state.confidence - 0.2);
+    if (!intakeResult.success || !intakeResult.data) {
+      state.errors.push(intakeResult.error || 'Falha na análise de entrada');
       return state;
     }
     state.parsedInput = intakeResult.data;
-    state.confidence = Math.min(1.0, state.confidence * intakeResult.confidence);
+    state.confidence = Math.min(state.confidence, intakeResult.confidence);
 
-    // 2. Linker Agent
-    const linkerResult = await linkerAgent(intakeResult.data, existingTasks);
-    if (!linkerResult.success) {
-      state.errors.push(linkerResult.error || 'Erro no agente de vinculação');
-      state.confidence = Math.max(0, state.confidence - 0.2);
+    // 2. Decisão de vinculação
+    const linkResult = await linkerAgent(intakeResult.data, existingTasks);
+    if (!linkResult.success || !linkResult.data) {
+      state.errors.push(linkResult.error || 'Falha na decisão de vinculação');
       return state;
     }
-    state.linkDecision = linkerResult.data;
-    state.confidence = Math.min(1.0, state.confidence * linkerResult.confidence);
+    state.linkDecision = linkResult.data;
+    state.confidence = Math.min(state.confidence, linkResult.confidence);
 
-    // 3. Planner Agent
-    const plannerResult = await plannerAgent(intakeResult.data, linkerResult.data);
-    if (!plannerResult.success) {
-      state.errors.push(plannerResult.error || 'Erro no agente de planejamento');
-      state.confidence = Math.max(0, state.confidence - 0.2);
+    // 3. Planejamento (se necessário)
+    const planResult = await plannerAgent(intakeResult.data, linkResult.data);
+    if (!planResult.success || !planResult.data) {
+      state.errors.push(planResult.error || 'Falha no planejamento');
       return state;
     }
-    state.taskPlan = plannerResult.data;
-    state.confidence = Math.min(1.0, state.confidence * plannerResult.confidence);
+    state.taskPlan = planResult.data;
+    state.confidence = Math.min(state.confidence, planResult.confidence);
 
-    // 4. Prioritizer Agent
-    const prioritizerResult = await prioritizerAgent(plannerResult.data, userContext);
-    if (!prioritizerResult.success) {
-      state.errors.push(prioritizerResult.error || 'Erro no agente de priorização');
-      state.confidence = Math.max(0, state.confidence - 0.2);
+    // 4. Priorização
+    const priorityResult = await priorityAgent(intakeResult.data, planResult.data, userContext);
+    if (!priorityResult.success || !priorityResult.data) {
+      state.errors.push(priorityResult.error || 'Falha na priorização');
       return state;
     }
-    state.priorityDecision = prioritizerResult.data;
-    state.confidence = Math.min(1.0, state.confidence * prioritizerResult.confidence);
+    state.priorityDecision = priorityResult.data;
+    state.confidence = Math.min(state.confidence, priorityResult.confidence);
 
-    // 5. Finalizer Agent
-    state = await finalizerAgent(state);
-    
-    // Definir workspace_id na tarefa final
-    if (state.finalTask) {
-      state.finalTask.workspace_id = workspaceId;
-      if (state.finalTask.subtasks) {
-        state.finalTask.subtasks = state.finalTask.subtasks.map(subtask => ({
-          ...subtask,
-          task_id: state.finalTask!.id,
-        }));
-      }
+    // 5. Execução
+    const executorResult = await executorAgent(
+      intakeResult.data,
+      linkResult.data,
+      planResult.data,
+      priorityResult.data,
+      existingTasks
+    );
+    if (!executorResult.success || !executorResult.data) {
+      state.errors.push(executorResult.error || 'Falha na execução');
+      return state;
     }
+    state.finalTask = executorResult.data;
+    state.confidence = Math.min(state.confidence, executorResult.confidence);
 
     return state;
   } catch (error) {
-    return {
-      ...state,
-      errors: [...state.errors, `Erro geral: ${error}`],
-      confidence: 0,
-    };
+    state.errors.push(error instanceof Error ? error.message : 'Erro desconhecido');
+    return state;
   }
 }

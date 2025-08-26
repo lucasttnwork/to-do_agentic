@@ -20,6 +20,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.node,
+        IntersectionObserverInit: 'readonly',
       },
     },
     plugins: {
@@ -33,6 +34,8 @@ export default [
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
       'no-console': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-undef': 'warn',
     },
   },
   {

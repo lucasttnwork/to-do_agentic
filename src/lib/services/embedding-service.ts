@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase/client';
+import { Task } from '@/types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -29,7 +30,7 @@ export async function searchTasksSemantic(
   query: string, 
   workspaceId: string, 
   limit: number = 10
-): Promise<any[]> {
+): Promise<Task[]> {
   try {
     // Gerar embedding da query
     const queryEmbedding = await generateTaskEmbedding(query);

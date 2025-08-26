@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+interface WhisperResponse {
+  text: string;
+  segments?: Array<{ text: string }>;
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -41,9 +46,11 @@ export async function POST(req: NextRequest) {
       response_format: 'verbose_json',
     });
 
+    const whisperResponse = transcription as WhisperResponse;
+    
     return NextResponse.json({ 
       success: true,
-      text: (transcription as any).text || (transcription as any).segments?.map((s: any) => s.text).join(' ') || '',
+      text: whisperResponse.text || whisperResponse.segments?.map((s) => s.text).join(' ') || '',
       language: 'pt',
       model: 'whisper-1'
     });

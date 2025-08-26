@@ -2,7 +2,7 @@ export interface User {
   id: string;
   email: string;
   full_name?: string;
-  preferences: Record<string, any>;
+  preferences: Record<string, unknown>;
 }
 
 export interface Workspace {
@@ -10,7 +10,7 @@ export interface Workspace {
   user_id: string;
   name: string;
   type: 'personal' | 'client';
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
 }
 
 export interface Project {
@@ -55,7 +55,7 @@ export interface Entity {
   workspace_id: string;
   type: 'client' | 'person' | 'tag';
   name: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 export interface ChatMessage {
@@ -65,7 +65,7 @@ export interface ChatMessage {
   timestamp: string;
   task_id?: string;
   action?: 'task_created' | 'task_updated' | 'task_completed';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 // Tipos para os agentes de IA
@@ -109,7 +109,7 @@ export interface PriorityDecision {
   confidence: number;
 }
 
-export interface AgentResponse<T = any> {
+export interface AgentResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;

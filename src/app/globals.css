@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('../styles/premium.css');
+@import url('../styles/glassmorphism.css');
+
 :root {
   /* Core Colors (Base do Sistema) */
   --bg-primary: #0a0e1a;     /* Background principal */
@@ -96,8 +99,27 @@
 }
 
 body {
-  background-color: hsl(var(--background));
+  background: radial-gradient(ellipse at top, #1e1b4b 0%, #0f172a 50%, #000000 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
   color: hsl(var(--foreground));
+}
+
+/* Prevent FOUC */
+.premium-component {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Glassmorphism helpers */

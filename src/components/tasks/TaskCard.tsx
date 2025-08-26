@@ -1,138 +1,132 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Calendar, Clock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { Task } from '@/types';
-import { formatDate, formatDateTime, formatDuration, getPriorityLabel, getStatusLabel } from '@/lib/utils';
-import { Check, MoreHorizontal, Clock, Calendar, User } from 'lucide-react';
 
 interface TaskCardProps {
   task: Task;
+  onClick?: () => void;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+const priorityColors = {
+  1: { bg: 'from-red-500 to-pink-500', text: 'text-red-400', icon: AlertCircle },
+  2: { bg: 'from-orange-500 to-yellow-500', text: 'text-orange-400', icon: AlertCircle },
+  3: { bg: 'from-blue-500 to-cyan-500', text: 'text-blue-400', icon: CheckCircle },
+  4: { bg: 'from-green-500 to-emerald-500', text: 'text-green-400', icon: CheckCircle },
+  5: { bg: 'from-slate-500 to-gray-500', text: 'text-slate-400', icon: CheckCircle }
+};
 
-  const completedSubtasks = task.subtasks?.filter(st => st.status === 'done').length || 0;
-  const totalSubtasks = task.subtasks?.length || 0;
-  const progress = totalSubtasks ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
+const statusColors = {
+  'todo': { bg: 'from-yellow-500 to-orange-500', text: 'text-yellow-400' },
+  'in_progress': { bg: 'from-blue-500 to-cyan-500', text: 'text-blue-400' },
+  'done': { bg: 'from-green-500 to-emerald-500', text: 'text-green-400' },
+  'archived': { bg: 'from-slate-500 to-gray-500', text: 'text-slate-400' }
+};
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 1: return 'from-red-500 to-purple-500';
-      case 2: return 'from-blue-500 to-purple-500';
-      case 3: return 'from-purple-500 to-blue-500';
-      default: return 'from-blue-500 to-purple-500';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'done': return 'bg-green-500/20 text-green-300 border-green-500/30';
-      case 'in_progress': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
-    }
-  };
+export function TaskCard({ task, onClick }: TaskCardProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const priority = priorityColors[task.priority as keyof typeof priorityColors] || priorityColors[3];
+  const status = statusColors[task.status as keyof typeof statusColors] || statusColors['todo'];
+  const PriorityIcon = priority.icon;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, scale: 1.01 }}
-      className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6 shadow-xl shadow-black/10 hover:shadow-blue-500/10 transition-all duration-300 relative overflow-hidden group"
+      className="group relative overflow-hidden rounded-2xl cursor-pointer"
+      whileHover={{ scale: 1.02, y: -4 }}
+      transition={{ type: "spring", stiffness: 300 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      onClick={onClick}
+      style={{
+        transform: isHovered ? 'perspective(1000px) rotateX(2deg) rotateY(2deg)' : 'none',
+        transition: 'transform 0.3s ease'
+      }}
     >
-      {/* Background glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
+      {/* Glassmorphism Background */}
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-[20px] border border-white/20 rounded-2xl" />
       
-      {/* Priority indicator - sutil */}
-      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${getPriorityColor(task.priority)} rounded-t-2xl`} />
+      {/* Gradient Overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${priority.bg} opacity-10 group-hover:opacity-20 transition-opacity duration-500 rounded-2xl`} />
       
-      <div className="relative z-10">
-        {/* Header da task */}
+      {/* Shimmer Effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-2xl" />
+      
+      {/* Border Luminosa Superior */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      
+      {/* Content */}
+      <div className="relative z-10 p-6">
+        {/* Header com Priority e Status */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white mb-2">
-              {task.title}
-            </h3>
-            {task.description && (
-              <p className="text-slate-400 text-sm leading-relaxed">
-                {task.description}
-              </p>
-            )}
+          <div className="flex items-center space-x-3">
+            <div className={`p-2 rounded-xl bg-gradient-to-r ${priority.bg} bg-opacity-20 border border-white/20`}>
+              <PriorityIcon className={`w-5 h-5 ${priority.text}`} />
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-xs font-medium ${priority.text} uppercase tracking-wider`}>
+                P{task.priority} - {task.priority === 1 ? 'Crítica' : task.priority === 2 ? 'Alta' : task.priority === 3 ? 'Normal' : task.priority === 4 ? 'Baixa' : 'Muito Baixa'}
+              </span>
+              <span className={`text-xs font-medium ${status.text} uppercase tracking-wider`}>
+                {task.status === 'todo' ? 'Pendente' : task.status === 'in_progress' ? 'Em Progresso' : task.status === 'done' ? 'Concluído' : 'Arquivado'}
+              </span>
+            </div>
           </div>
           
-          {/* Status badge */}
-          <div className={`px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getStatusColor(task.status)}`}>
-            {getPriorityLabel(task.priority)} • {getStatusLabel(task.status)}
-          </div>
+          {/* Floating Arrow */}
+          <motion.div
+            animate={{ x: isHovered ? 4 : 0 }}
+            transition={{ duration: 0.3 }}
+            className="text-white/40 group-hover:text-white/60 transition-colors"
+          >
+            <ArrowRight className="w-5 h-5" />
+          </motion.div>
         </div>
         
-        {/* Metadata */}
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
+        {/* Task Title */}
+        <h3 className="text-lg font-semibold text-white mb-3 group-hover:text-white/90 transition-colors">
+          {task.title}
+        </h3>
+        
+        {/* Task Description */}
+        {task.description && (
+          <p className="text-slate-300 text-sm mb-4 line-clamp-2">
+            {task.description}
+          </p>
+        )}
+        
+        {/* Task Details */}
+        <div className="space-y-3 mb-4">
+          {/* Due Date */}
           {task.due_date && (
-            <span className="flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              {formatDate(task.due_date)}
-            </span>
+            <div className="flex items-center space-x-2 text-sm text-slate-400">
+              <Calendar className="w-4 h-4" />
+              <span>Prazo: {new Date(task.due_date).toLocaleDateString('pt-BR')}</span>
+            </div>
           )}
+          
+          {/* Estimated Time */}
           {task.effort_minutes && (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatDuration(task.effort_minutes)}
-            </span>
+            <div className="flex items-center space-x-2 text-sm text-slate-400">
+              <Clock className="w-4 h-4" />
+              <span>Tempo estimado: {Math.round(task.effort_minutes / 60 * 10) / 10}h</span>
+            </div>
           )}
         </div>
         
-        {/* Subtasks checklist */}
-        {totalSubtasks > 0 && (
-          <div className="space-y-2 mb-4">
-            {task.subtasks!.slice(0, 3).map((sub) => (
-              <div key={sub.id} className="flex items-center space-x-3">
-                <div className={`w-4 h-4 ${sub.status === 'done' ? 'bg-green-500/20 border-green-500/50' : 'border-slate-600'} border rounded flex items-center justify-center`}>
-                  {sub.status === 'done' && <Check className="w-3 h-3 text-green-400" />}
-                </div>
-                <span className={`text-slate-300 text-sm ${sub.status === 'done' ? 'line-through opacity-60' : ''}`}>
-                  {sub.title}
-                </span>
-              </div>
-            ))}
-            {totalSubtasks > 3 && (
-              <div className="text-xs text-slate-500 pl-7">
-                +{totalSubtasks - 3} mais...
-              </div>
-            )}
-          </div>
-        )}
+
         
-        {/* Progress bar */}
-        {totalSubtasks > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-              <span>Progresso</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-2 bg-slate-700/50 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{width: `${progress}%`}}></div>
-            </div>
-          </div>
-        )}
+
         
-        {/* Footer */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-slate-400 text-sm">{task.source_type || 'Manual'}</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-              <MoreHorizontal className="w-4 h-4 text-slate-400" />
-            </button>
-          </div>
+        {/* Creation Date */}
+        <div className="mt-4 text-xs text-slate-500">
+          Criado em {new Date(task.created_at).toLocaleDateString('pt-BR')}
         </div>
       </div>
+      
+      {/* Hover Shadow Enhancement */}
+      <div className={`absolute inset-0 rounded-2xl shadow-2xl shadow-${priority.bg.split('-')[1]}-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
     </motion.div>
   );
 }
