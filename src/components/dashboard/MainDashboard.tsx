@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Home, MessageSquare, Calendar, Settings, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Sidebar from './Sidebar';
 
 export function MainDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
+  const [selectedProject, setSelectedProject] = useState('Todos os projetos');
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', active: true },
@@ -15,7 +18,7 @@ export function MainDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-900 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 relative">
       {/* Background Premium com Profundidade */}
       <div className="fixed inset-0 -z-10">
         {/* Gradient Base */}
@@ -27,169 +30,13 @@ export function MainDashboard() {
         <div className="absolute top-3/4 left-1/3 w-32 h-32 bg-gradient-to-r from-green-500/15 to-blue-500/15 rounded-full blur-2xl animate-pulse delay-500" />
       </div>
       
-      {/* Main content */}
-      <div className="relative z-10">
-        <div className="flex h-screen text-slate-50">
-          {/* Sidebar - Workspaces/Projetos com Liquid Glass Melhorado */}
-          <aside className={`${sidebarCollapsed ? 'w-20' : 'w-80'} relative z-50 bg-slate-800 border-r border-slate-600 transition-all duration-300 flex flex-col shadow-2xl shadow-black/50`}>
-            {/* Header da Sidebar com Logo */}
-            <div className="p-6 border-b border-slate-600 bg-slate-700">
-              {!sidebarCollapsed ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-                      <Brain className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                      TaskFlow AI
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setSidebarCollapsed(true)}
-                    className="p-2 rounded-lg hover:bg-slate-600 transition-colors text-slate-300 hover:text-white"
-                    aria-label="Recolher sidebar"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-                    <Brain className="w-6 h-6 text-white" />
-                  </div>
-                  <button
-                    onClick={() => setSidebarCollapsed(false)}
-                    className="p-2 rounded-lg hover:bg-slate-600 transition-colors text-slate-300 hover:text-white"
-                    aria-label="Expandir sidebar"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
-            </div>
+      {/* Layout Principal */}
+      <div className="relative z-0 flex h-screen text-slate-50">
+        {/* Sidebar Component */}
+        <Sidebar />
 
-            {!sidebarCollapsed && (
-              <>
-                {/* Navigation Menu Principal */}
-                <div className="px-4 py-4 bg-slate-700">
-                  <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-widest mb-4 px-2">
-                    Navegação
-                  </h3>
-                  <div className="space-y-2">
-                    {menuItems.map((item, index) => (
-                      <motion.button
-                        key={item.label}
-                        whileHover={{ x: 6, scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full flex items-center space-x-4 px-4 py-3 rounded-xl transition-all duration-200 relative overflow-hidden group cursor-pointer ${
-                          item.active 
-                            ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/50 text-white shadow-lg shadow-blue-500/30' 
-                            : 'hover:bg-slate-600 text-slate-200 hover:text-white'
-                        }`}
-                      >
-                        {/* Active indicator glow */}
-                        {item.active && (
-                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
-                        )}
-                        
-                        <item.icon className="w-5 h-5 relative z-10" />
-                        <span className="font-medium relative z-10">{item.label}</span>
-                        
-                        {/* Hover glow */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Workspaces */}
-                <div className="flex-1 overflow-y-auto bg-slate-700 p-4">
-                  <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest mb-4 px-2">
-                    Workspaces
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                      <span className="font-medium">NTEX</span>
-                    </div>
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                      <span className="font-medium">Pessoal</span>
-                    </div>
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                      <span className="font-medium">Kabbatec</span>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest mb-4 px-2 mt-6">
-                    Projetos
-                  </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-blue-400"></div>
-                      <span className="font-medium">Todos os projetos</span>
-                    </div>
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                      <span className="font-medium">Academia SP</span>
-                    </div>
-                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-slate-600 text-slate-200 cursor-pointer">
-                      <div className="w-3 h-3 rounded-full bg-slate-400"></div>
-                      <span className="font-medium">Kabbatec</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botão New Task */}
-                <div className="p-4 border-t border-slate-600 bg-slate-700">
-                  <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center space-x-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>New Task</span>
-                  </motion.button>
-                </div>
-              </>
-            )}
-
-            {/* Sidebar Collapsed - Apenas ícones */}
-            {sidebarCollapsed && (
-              <div className="flex-1 flex flex-col items-center py-4 space-y-6 bg-slate-700">
-                {/* Navigation Icons */}
-                {menuItems.map((item, index) => (
-                  <motion.button
-                    key={item.label}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`p-3 rounded-xl transition-all duration-200 relative ${
-                      item.active 
-                        ? 'bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/50 text-white shadow-lg shadow-blue-500/30' 
-                        : 'hover:bg-slate-600 text-slate-200 hover:text-white'
-                    }`}
-                    title={item.label}
-                  >
-                    <item.icon className="w-5 h-5" />
-                  </motion.button>
-                ))}
-                
-                {/* New Task Button Collapsed */}
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300"
-                  title="New Task"
-                >
-                  <Plus className="w-5 h-5" />
-                </motion.button>
-              </div>
-            )}
-          </aside>
-
-          {/* Área principal */}
-          <main className="flex-1 flex flex-col relative z-20">
+        {/* Área principal */}
+        <main className="flex-1 flex flex-col relative z-20">
             {/* Header */}
             <header className="p-8 border-b border-white/10 backdrop-blur-[20px] bg-white/5">
               <div className="flex items-center justify-between">
@@ -272,7 +119,7 @@ export function MainDashboard() {
               <section className="w-96 backdrop-blur-[20px] bg-white/5 border border-white/20 rounded-3xl flex flex-col shadow-2xl shadow-black/20">
                 <div className="p-6 border-b border-white/10">
                   <h3 className="text-lg font-semibold text-white">AI Assistant</h3>
-                  <p className="text-slate-400 text-sm">NTEX • Academia SP</p>
+                  <p className="text-slate-400 text-sm">{selectedWorkspace} • {selectedProject}</p>
                 </div>
                 <div className="flex-1 p-6">
                   <div className="space-y-4">
@@ -345,7 +192,6 @@ export function MainDashboard() {
               </section>
             </div>
           </main>
-        </div>
       </div>
     </div>
   );

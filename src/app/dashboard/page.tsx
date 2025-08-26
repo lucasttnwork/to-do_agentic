@@ -7,6 +7,8 @@ import ChatInput from '@/components/chat/ChatInput';
 
 export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
+  const [selectedProject, setSelectedProject] = useState('Academia SP');
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -29,18 +31,18 @@ export default function DashboardPage() {
         <div className="flex h-screen text-slate-50">
           {/* Sidebar - Workspaces/Projetos com Liquid Glass */}
           <motion.aside 
-            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} backdrop-blur-[40px] bg-gradient-to-b from-slate-900/80 to-slate-800/60 border-r border-white/10 transition-all duration-300 flex flex-col relative overflow-hidden`}
+            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} backdrop-blur-[40px] bg-gradient-to-b from-slate-900/80 to-slate-800/60 border-r border-white/10 transition-all duration-300 flex flex-col relative z-30 overflow-hidden`}
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             {/* Liquid Glass Background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 to-slate-800/60 backdrop-blur-[40px]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 to-slate-800/60 backdrop-blur-[40px] pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-transparent pointer-events-none" />
             
             {/* Floating Elements Internos */}
-            <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-xl animate-pulse" />
-            <div className="absolute bottom-1/3 right-1/4 w-16 h-16 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-lg animate-pulse delay-1000" />
+            <div className="absolute top-1/4 left-1/4 w-20 h-20 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-full blur-xl animate-pulse pointer-events-none" />
+            <div className="absolute bottom-1/3 right-1/4 w-16 h-16 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-lg animate-pulse delay-1000 pointer-events-none" />
             
             <div className="relative z-10 p-4 border-b border-white/10">
               <motion.button
@@ -62,7 +64,7 @@ export default function DashboardPage() {
 
             {!sidebarCollapsed && (
               <motion.div 
-                className="flex-1 overflow-y-auto p-4"
+                className="flex-1 overflow-y-auto p-4 relative z-10"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}

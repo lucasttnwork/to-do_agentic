@@ -1,17 +1,30 @@
 'use client';
 
-import { Brain, Home, MessageSquare, Calendar, Settings } from 'lucide-react';
+import { Brain, Home, MessageSquare, Calendar, Settings, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState } from 'react';
+import '../../styles/isolated-sidebar.css';
 
 interface SidebarProps {
   onClose?: () => void;
 }
 
 export default function Sidebar({ onClose }: SidebarProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
+  const [selectedProject, setSelectedProject] = useState('Todos os projetos');
+
   const workspaces = [
-    { id: 1, name: 'Personal', type: 'personal', icon: '🏠' },
-    { id: 2, name: 'NTEX', type: 'client', icon: '🏢' },
-    { id: 3, name: 'Kabbatec', type: 'client', icon: '🏢' }
+    { id: 1, name: 'Pessoal', type: 'personal', color: 'bg-red-500' },
+    { id: 2, name: 'NTEX', type: 'client', color: 'bg-purple-500' },
+    { id: 3, name: 'Kabbatec', type: 'client', color: 'bg-blue-500' }
+  ];
+
+  const projects = [
+    { id: 1, name: 'Todos os projetos', color: 'bg-blue-500' },
+    { id: 2, name: 'Kabbatec', color: 'bg-purple-500' },
+    { id: 3, name: 'Cartório', color: 'bg-green-500' },
+    { id: 4, name: 'Academia SP', color: 'bg-orange-500' }
   ];
 
   const menuItems = [
@@ -22,78 +35,152 @@ export default function Sidebar({ onClose }: SidebarProps) {
   ];
 
   return (
-    <div className="w-80 h-full p-4">
-      <div className="h-full backdrop-blur-xl bg-slate-800/20 border border-slate-700/30 rounded-3xl p-6 shadow-2xl shadow-black/20 relative overflow-hidden">
-        {/* Background glow */}
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+    <div className={`${sidebarCollapsed ? 'w-20' : 'w-80'} h-full transition-all duration-300 ease-in-out relative z-40`}>
+      {/* Sidebar Container com Estilos Isolados */}
+      <div className="h-full isolated-sidebar">
         
-        {/* Logo com glow */}
-        <div className="flex items-center space-x-3 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-            TaskFlow AI
-          </span>
+        {/* Header da Sidebar */}
+        <div className="p-6 border-b border-slate-600/50 isolated-sidebar-header relative z-10">
+          {!sidebarCollapsed ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 isolated-sidebar-logo rounded-xl flex items-center justify-center">
+                  <Brain className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xl font-bold isolated-sidebar-logo-text">
+                  TaskFlow AI
+                </span>
+              </div>
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="p-2 rounded-lg isolated-sidebar-collapse-btn text-slate-300 hover:text-white"
+                aria-label="Recolher sidebar"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-10 h-10 isolated-sidebar-logo rounded-xl flex items-center justify-center">
+                <Brain className="w-6 h-6 text-white" />
+              </div>
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="p-2 rounded-lg isolated-sidebar-collapse-btn text-slate-300 hover:text-white"
+                aria-label="Expandir sidebar"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
-        
-        {/* Navigation items com hover premium */}
-        {menuItems.map((item, index) => (
-          <motion.div
-            key={item.label}
-            whileHover={{ x: 6, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className={`flex items-center space-x-4 px-4 py-3 rounded-xl mb-2 transition-all duration-200 relative overflow-hidden group cursor-pointer ${
-              item.active 
-                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-white shadow-lg shadow-blue-500/10' 
-                : 'hover:bg-blue-500/5 text-slate-400 hover:text-blue-200 backdrop-blur-sm'
-            }`}
-          >
-            {/* Active indicator glow */}
-            {item.active && (
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-purple-500 rounded-full" />
-            )}
+
+        {!sidebarCollapsed && (
+          <>
+            {/* Navigation Menu Principal */}
+            <div className="px-4 py-4 relative z-10">
+              <h3 className="text-xs font-semibold isolated-sidebar-section-title uppercase tracking-widest mb-4 px-2">
+                Navegação
+              </h3>
+              <div className="space-y-2">
+                {menuItems.map((item, index) => (
+                  <motion.button
+                    key={item.label}
+                    whileHover={{ x: 6, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-full flex items-center space-x-4 px-4 py-3 rounded-xl transition-all duration-200 relative overflow-hidden group cursor-pointer isolated-sidebar-nav-item ${
+                      item.active ? 'active' : ''
+                    }`}
+                  >
+                    <item.icon className="w-5 h-5 relative z-10" />
+                    <span className="font-medium relative z-10 isolated-sidebar-text-primary">{item.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {/* Workspaces */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 isolated-sidebar-scroll relative z-10">
+              <h3 className="text-xs font-semibold isolated-sidebar-section-title uppercase tracking-widest mb-4 px-2">
+                Workspaces
+              </h3>
+              <div className="space-y-2">
+                {workspaces.map((workspace) => (
+                  <div 
+                    key={workspace.id}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group isolated-sidebar-workspace-item ${
+                      selectedWorkspace === workspace.name ? 'selected' : ''
+                    }`}
+                    onClick={() => setSelectedWorkspace(workspace.name)}
+                  >
+                    <div className={`w-3 h-3 rounded-full ${workspace.color} isolated-sidebar-workspace-dot`}></div>
+                    <span className="font-medium isolated-sidebar-text-primary">{workspace.name}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <h3 className="text-xs font-semibold isolated-sidebar-section-title uppercase tracking-widest mb-4 px-2 mt-6">
+                Projetos
+              </h3>
+              <div className="space-y-2">
+                {projects.map((project) => (
+                  <div 
+                    key={project.id}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group isolated-sidebar-workspace-item ${
+                      selectedProject === project.name ? 'selected' : ''
+                    }`}
+                    onClick={() => setSelectedProject(project.name)}
+                  >
+                    <div className={`w-3 h-3 rounded-full ${project.color} isolated-sidebar-workspace-dot`}></div>
+                    <span className="font-medium isolated-sidebar-text-primary">{project.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Botão New Task */}
+            <div className="p-4 border-t border-slate-600/50 relative z-10">
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full isolated-sidebar-new-task-btn text-white py-3 px-4 rounded-xl font-medium flex items-center justify-center space-x-2"
+              >
+                <Plus className="w-5 h-5" />
+                <span>New Task</span>
+              </motion.button>
+            </div>
+          </>
+        )}
+
+        {/* Sidebar Collapsed - Apenas ícones */}
+        {sidebarCollapsed && (
+          <div className="flex-1 flex flex-col items-center py-4 space-y-6">
+            {/* Navigation Icons */}
+            {menuItems.map((item, index) => (
+              <motion.button
+                key={item.label}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`p-3 rounded-xl transition-all duration-200 relative isolated-sidebar-nav-item ${
+                  item.active ? 'active' : ''
+                }`}
+                title={item.label}
+              >
+                <item.icon className="w-5 h-5" />
+              </motion.button>
+            ))}
             
-            <item.icon className="w-5 h-5 relative z-10" />
-            <span className="font-medium relative z-10">{item.label}</span>
-            
-            {/* Hover glow */}
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />
-          </motion.div>
-        ))}
-        
-        {/* Workspaces com visual premium - TODOS com mesma cor */}
-        <div className="mt-8 pt-6 border-t border-slate-700/30">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4 px-2">
-            Workspaces
-          </h3>
-          {workspaces.map((workspace, index) => (
-            <motion.div
-              key={workspace.id}
-              whileHover={{ x: 6 }}
-              className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-blue-500/5 transition-all cursor-pointer group mb-1"
+            {/* New Task Button Collapsed */}
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-3 isolated-sidebar-new-task-btn text-white rounded-xl"
+              title="New Task"
             >
-              <div className="w-3 h-3 rounded-full bg-blue-500/50 group-hover:bg-blue-400/70 transition-colors shadow-lg" />
-              <span className="text-slate-400 group-hover:text-blue-200 transition-colors font-medium">
-                {workspace.name}
-              </span>
-              <span className="text-xs text-slate-500 ml-auto">
-                {workspace.icon}
-              </span>
-            </motion.div>
-          ))}
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="mt-auto pt-6">
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-4 rounded-xl font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300"
-          >
-            + New Task
-          </motion.button>
-        </div>
+              <Plus className="w-5 h-5" />
+            </motion.button>
+          </div>
+        )}
       </div>
     </div>
   );

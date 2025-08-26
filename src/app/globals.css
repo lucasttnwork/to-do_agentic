@@ -231,3 +231,263 @@ body {
 .hover-glow {
   @apply transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20;
 }
+
+/* Sidebar específico - Garantir visibilidade */
+.dashboard-sidebar {
+  position: relative !important;
+  z-index: 40 !important;
+  background-color: #334155 !important;
+  border-right: 2px solid #64748b !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.dashboard-sidebar * {
+  position: relative !important;
+  z-index: 41 !important;
+}
+
+/* Forçar visibilidade dos elementos da sidebar */
+.dashboard-sidebar aside {
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.dashboard-sidebar button {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* Garantir que o texto seja legível */
+.dashboard-sidebar span,
+.dashboard-sidebar h3,
+.dashboard-sidebar div {
+  color: inherit !important;
+  visibility: visible !important;
+}
+
+/* ===== ESTILOS ISOLADOS PARA SIDEBAR ===== */
+/* Sem conflitos com Glassmorphism */
+
+.sidebar-container {
+  /* Container principal com estilos isolados */
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-right: 1px solid rgba(71, 85, 105, 0.3);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.sidebar-container::before {
+  /* Background pattern sutil */
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+
+.sidebar-header {
+  /* Header da sidebar com gradiente sutil */
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.5) 0%, rgba(30, 41, 59, 0.5) 100%);
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-logo {
+  /* Logo com efeitos isolados */
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar-logo-text {
+  /* Texto do logo com gradiente */
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.sidebar-nav-item {
+  /* Itens de navegação com estilos isolados */
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-nav-item:hover {
+  background-color: rgba(71, 85, 105, 0.3);
+  transform: translateX(6px);
+}
+
+.sidebar-nav-item.active {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.1);
+}
+
+.sidebar-nav-item.active::before {
+  /* Indicador ativo */
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 0 2px 2px 0;
+}
+
+.sidebar-workspace-item {
+  /* Itens de workspace com estilos isolados */
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sidebar-workspace-item:hover {
+  background-color: rgba(71, 85, 105, 0.2);
+  transform: translateX(4px);
+}
+
+.sidebar-workspace-item.selected {
+  background-color: rgba(71, 85, 105, 0.4);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+}
+
+.sidebar-workspace-dot {
+  /* Pontos coloridos dos workspaces */
+  transition: transform 0.2s ease;
+}
+
+.sidebar-workspace-item:hover .sidebar-workspace-dot {
+  transform: scale(1.1);
+}
+
+.sidebar-new-task-btn {
+  /* Botão New Task com estilos isolados */
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25);
+  transition: all 0.3s ease;
+}
+
+.sidebar-new-task-btn:hover {
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.sidebar-collapse-btn {
+  /* Botões de colapsar/expandir */
+  transition: all 0.2s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background-color: rgba(71, 85, 105, 0.3);
+  color: white;
+}
+
+.sidebar-section-title {
+  /* Títulos das seções */
+  color: #cbd5e1;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sidebar-text-primary {
+  /* Texto principal */
+  color: #e2e8f0;
+}
+
+.sidebar-text-secondary {
+  /* Texto secundário */
+  color: #94a3b8;
+}
+
+.sidebar-text-muted {
+  /* Texto com menor destaque */
+  color: #64748b;
+}
+
+/* Animações específicas da sidebar */
+@keyframes sidebarSlideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sidebarSlideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+.sidebar-slide-in {
+  animation: sidebarSlideIn 0.3s ease-out;
+}
+
+.sidebar-slide-out {
+  animation: sidebarSlideOut 0.3s ease-in;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .sidebar-container {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  }
+  
+  .sidebar-header {
+    padding: 1rem;
+  }
+  
+  .sidebar-nav-item {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Estados de foco para acessibilidade */
+.sidebar-nav-item:focus,
+.sidebar-workspace-item:focus,
+.sidebar-new-task-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Scrollbar personalizada para a sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: rgba(71, 85, 105, 0.1);
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.3);
+  border-radius: 3px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.5);
+}
