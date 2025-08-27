@@ -2,9 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { generateTaskEmbedding } from '@/lib/services/embedding-service';
 
+// Função para verificar autenticação
+async function verifyAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return { error: 'Token de autenticação necessário', status: 401 };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  
+  if (authError || !user) {
+    return { error: 'Token inválido', status: 401 };
+  }
+
+  return { user };
+}
+
 // GET - Listar tarefas
 export async function GET(req: NextRequest) {
   try {
+    // Verificar autenticação
+    const auth = await verifyAuth(req);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspace_id');
     const status = searchParams.get('status');
@@ -14,6 +38,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: 'workspace_id é obrigatório' },
         { status: 400 }
+      );
+    }
+
+    // Verificar se o workspace pertence ao usuário
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('id', workspaceId)
+      .eq('user_id', auth.user.id)
+      .single();
+
+    if (workspaceError || !workspace) {
+      return NextResponse.json(
+        { error: 'Workspace não encontrado' },
+        { status: 404 }
       );
     }
 
@@ -62,6 +101,12 @@ export async function GET(req: NextRequest) {
 // POST - Criar tarefa
 export async function POST(req: NextRequest) {
   try {
+    // Verificar autenticação
+    const auth = await verifyAuth(req);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const taskData = await req.json();
     const { 
       workspace_id, 
@@ -79,6 +124,38 @@ export async function POST(req: NextRequest) {
         { error: 'workspace_id e title são obrigatórios' },
         { status: 400 }
       );
+    }
+
+    // Verificar se o workspace pertence ao usuário
+    const { data: workspace, error: workspaceError } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('id', workspace_id)
+      .eq('user_id', auth.user.id)
+      .single();
+
+    if (workspaceError || !workspace) {
+      return NextResponse.json(
+        { error: 'Workspace não encontrado' },
+        { status: 404 }
+      );
+    }
+
+    // Verificar se o projeto pertence ao workspace (se especificado)
+    if (project_id) {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', project_id)
+        .eq('workspace_id', workspace_id)
+        .single();
+
+      if (projectError || !project) {
+        return NextResponse.json(
+          { error: 'Projeto não encontrado' },
+          { status: 404 }
+        );
+      }
     }
 
     // Gerar embedding para a tarefa
@@ -130,12 +207,36 @@ export async function POST(req: NextRequest) {
 // PUT - Atualizar tarefa
 export async function PUT(req: NextRequest) {
   try {
+    // Verificar autenticação
+    const auth = await verifyAuth(req);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const { id, ...updates } = await req.json();
 
     if (!id) {
       return NextResponse.json(
         { error: 'ID da tarefa é obrigatório' },
         { status: 400 }
+      );
+    }
+
+    // Verificar se a tarefa pertence ao usuário
+    const { data: existingTask, error: checkError } = await supabase
+      .from('tasks')
+      .select(`
+        id,
+        workspaces!inner(user_id)
+      `)
+      .eq('id', id)
+      .eq('workspaces.user_id', auth.user.id)
+      .single();
+
+    if (checkError || !existingTask) {
+      return NextResponse.json(
+        { error: 'Tarefa não encontrada' },
+        { status: 404 }
       );
     }
 
@@ -178,6 +279,12 @@ export async function PUT(req: NextRequest) {
 // DELETE - Deletar tarefa
 export async function DELETE(req: NextRequest) {
   try {
+    // Verificar autenticação
+    const auth = await verifyAuth(req);
+    if ('error' in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
@@ -185,6 +292,24 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json(
         { error: 'ID da tarefa é obrigatório' },
         { status: 400 }
+      );
+    }
+
+    // Verificar se a tarefa pertence ao usuário
+    const { data: existingTask, error: checkError } = await supabase
+      .from('tasks')
+      .select(`
+        id,
+        workspaces!inner(user_id)
+      `)
+      .eq('id', id)
+      .eq('workspaces.user_id', auth.user.id)
+      .single();
+
+    if (checkError || !existingTask) {
+      return NextResponse.json(
+        { error: 'Tarefa não encontrada' },
+        { status: 404 }
       );
     }
 

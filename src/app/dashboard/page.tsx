@@ -1,14 +1,141 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 import StatsCards from '@/components/dashboard/StatsCards';
 import ChatInput from '@/components/chat/ChatInput';
+
+import { DashboardLoadingSpinner, InitializationSpinner, LogoutSpinner } from '@/components/shared/LoadingSpinner';
 
 export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
   const [selectedProject, setSelectedProject] = useState('Academia SP');
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  const [forceUpdate, setForceUpdate] = useState(0);
+  const [isClient, setIsClient] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  
+  const { user, loading, logout, updateAuthState } = useAuthContext();
+  const router = useRouter();
+  
+  // Refs para controlar verificações desnecessárias
+  const hasInitialized = useRef(false);
+  const lastAuthCheck = useRef<number>(0);
+  const correctionAttempts = useRef(0);
+
+  // Marcar quando o componente está no cliente para evitar hidratação
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Timeout de segurança para evitar loading infinito
+  useEffect(() => {
+    if (loading) {
+      const timeout = setTimeout(() => {
+        console.log('Timeout de loading atingido, forçando estado...');
+        setLoadingTimeout(true);
+      }, 5000); // Timeout reduzido para 5s
+
+      return () => clearTimeout(timeout);
+    } else {
+      setLoadingTimeout(false);
+    }
+  }, [loading]);
+
+  // Verificação inteligente para estados inconsistentes
+  useEffect(() => {
+    if (loading && user) {
+      console.log('Estado inconsistente detectado no dashboard: loading=true mas user existe');
+      
+      // Tentar corrigir o estado
+      const timer = setTimeout(() => {
+        if (loading && user) {
+          updateAuthState();
+        }
+      }, 200);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading, user, updateAuthState]);
+
+  // Verificar autenticação quando necessário
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  // Marcar como inicializado quando o usuário for carregado
+  useEffect(() => {
+    if (user) {
+      console.log('Dashboard inicializado com sucesso para usuário:', user.email);
+    }
+  }, [user]);
+
+  // Função de logout otimizada
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      const result = await logout();
+      
+      if (result.success) {
+        // Redirecionar para login após logout bem-sucedido
+        router.push('/login');
+      } else {
+        // Se houver erro, ainda redirecionar mas mostrar mensagem
+        console.error('Erro no logout:', result.error);
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Erro inesperado no logout:', error);
+      // Redirecionar mesmo com erro
+      router.push('/login');
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  // Renderizar loading apenas no cliente para evitar hidratação
+  if (!isClient) {
+    return <InitializationSpinner />;
+  }
+
+  // Mostrar loading quando necessário
+  if (loading) {
+    return <DashboardLoadingSpinner />;
+  }
+
+  // Mostrar spinner de logout se estiver fazendo logout
+  if (isLoggingOut) {
+    return <LogoutSpinner />;
+  }
+
+  // Fallback se o loading demorar muito
+  if (loadingTimeout && !user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="mb-4 text-red-400">⚠️</div>
+          <p className="mb-4">Problema ao carregar o dashboard</p>
+          <button 
+            onClick={() => updateAuthState()} 
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors mr-2"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Se não estiver autenticado, redirecionar para login
+  if (!user) {
+    router.push('/login');
+    return null;
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden">
@@ -167,7 +294,7 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    Welcome back, Lucas
+                    Welcome back, {user.full_name || user.email}
                   </motion.h1>
                   <motion.p 
                     className="text-slate-400"
@@ -178,17 +305,29 @@ export default function DashboardPage() {
                     Ready to organize your tasks with AI
                   </motion.p>
                 </div>
-                <motion.button
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="p-2 rounded-lg hover:bg-white/10 transition-colors group"
-                  aria-label="Alternar sidebar"
-                  whileHover={{ scale: 1.05, rotate: 180 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span className="text-slate-400 text-xl group-hover:text-white transition-colors">
-                    {sidebarCollapsed ? '→' : '←'}
-                  </span>
-                </motion.button>
+                <div className="flex items-center space-x-4">
+                  <motion.button
+                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    className="p-2 rounded-lg hover:bg-white/10 transition-colors group"
+                    aria-label="Alternar sidebar"
+                    whileHover={{ scale: 1.05, rotate: 180 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <span className="text-slate-400 text-xl group-hover:text-white transition-colors">
+                      {sidebarCollapsed ? '→' : '←'}
+                    </span>
+                  </motion.button>
+                  
+                  <motion.button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors border border-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    whileHover={{ scale: isLoggingOut ? 1 : 1.05 }}
+                    whileTap={{ scale: isLoggingOut ? 1 : 0.95 }}
+                  >
+                    {isLoggingOut ? 'Saindo...' : 'Logout'}
+                  </motion.button>
+                </div>
               </div>
             </motion.header>
 
@@ -337,6 +476,8 @@ export default function DashboardPage() {
           </main>
         </div>
       </div>
+
+
     </div>
   );
 }

@@ -1,44 +1,111 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          req.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: any) {
+          req.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+        },
+      },
+    }
+  );
 
   // Verificar se o usuário está autenticado
   const {
     data: { session },
   } = await supabase.auth.getSession();
 
-  // Rotas que precisam de autenticação
-  const protectedRoutes = ['/api/tasks', '/api/ai', '/api/audio', '/dashboard'];
-  const isProtectedRoute = protectedRoutes.some(route => 
+  // Rotas públicas que não precisam de autenticação
+  const publicRoutes = ['/', '/login', '/register', '/api/auth'];
+  
+  // Verificar se a rota atual é pública
+  const isPublicRoute = publicRoutes.some(route => 
     req.nextUrl.pathname.startsWith(route)
   );
 
-  // Se é uma rota protegida e não há sessão, redirecionar para login
-  if (isProtectedRoute && !session) {
-    if (req.nextUrl.pathname.startsWith('/api/')) {
+  // Se não estiver autenticado e tentar acessar rota protegida
+  if (!session && !isPublicRoute) {
+    // Redirecionar para login se tentar acessar dashboard
+    if (req.nextUrl.pathname.startsWith('/dashboard')) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/login';
+      redirectUrl.searchParams.set('redirect', req.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+    
+    // Para outras rotas protegidas, retornar 401
+    if (req.nextUrl.pathname.startsWith('/api/') && !req.nextUrl.pathname.startsWith('/api/auth')) {
       return NextResponse.json(
         { error: 'Não autorizado' },
         { status: 401 }
       );
     }
-    
-    // Em vez de redirecionar para /, vamos permitir acesso ao dashboard
-    // e deixar que o componente lide com a autenticação
-    return res;
   }
 
-  return res;
+  // Se estiver autenticado e tentar acessar rotas de auth
+  if (session && (req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/register')) {
+    const redirectUrl = req.nextUrl.clone();
+    redirectUrl.pathname = '/dashboard';
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/api/tasks/:path*',
-    '/api/ai/:path*', 
-    '/api/audio/:path*',
-    '/dashboard/:path*'
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

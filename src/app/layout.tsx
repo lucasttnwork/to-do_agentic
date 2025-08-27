@@ -5,6 +5,7 @@ import { Theme } from '@radix-ui/themes';
 import '@radix-ui/themes/styles.css';
 import './globals.css';
 import '../styles/premium.css';
+import { AuthProvider } from '../components/auth/AuthProvider';
 
 const geist = Geist({
   variable: '--font-geist-sans',
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="pt-BR" className="dark">
       <body className={`${geist.variable} ${geistMono.variable} antialiased bg-slate-950 text-white`}>
         <Theme appearance="dark" accentColor="blue" grayColor="slate">
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </Theme>
       </body>
     </html>

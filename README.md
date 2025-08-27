@@ -1,186 +1,234 @@
-# TaskFlow AI - Premium Visual Upgrade
+# 🚀 TaskFlow AI - Sistema de Gerenciamento de Tarefas com IA
 
-## 🎨 Transformação Visual Premium Completa
+Sistema inteligente de gerenciamento de tarefas que permite criação automática através de chat conversacional, com integração em tempo real entre front-end e back-end.
 
-O TaskFlow AI foi completamente transformado com um design premium que inclui glassmorphism, liquid glass e elementos 3D flutuantes, criando uma experiência visual moderna e sofisticada.
+## ✨ **Funcionalidades Principais**
 
-## ✨ Características Premium Implementadas
+- 🤖 **IA Conversacional**: Crie tarefas conversando naturalmente
+- ⚡ **Tempo Real**: Sincronização automática entre dispositivos
+- 🎯 **Organização Inteligente**: Priorização automática e organização por contexto
+- 🔐 **Autenticação Segura**: Sistema completo de login/registro com Supabase
+- 📱 **Interface Responsiva**: Design moderno com glassmorphism
+- 🚀 **Performance Otimizada**: Next.js 14 com App Router
 
-### 1. 🪟 Glassmorphism Avançado
-- **Stats Cards**: Transparência com `backdrop-blur-[20px]` e bordas luminosas
-- **Background**: Gradientes iridescentes com profundidade visual
-- **Sidebar**: Liquid glass com blur de 40px e gradientes dinâmicos
-- **Task Cards**: Efeitos de vidro com shimmer e bordas luminosas
+## 🛠️ **Tecnologias Utilizadas**
 
-### 2. 🌈 Gradientes Iridescentes
-- **Total Tasks**: `from-blue-500 via-blue-600 to-purple-500`
-- **Completed**: `from-green-400 via-blue-400 to-cyan-400`
-- **In Progress**: `from-purple-500 via-pink-500 to-purple-600`
-- **High Priority**: `from-orange-400 via-red-400 to-pink-400`
+- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **IA**: OpenAI GPT-4, Embeddings para busca semântica
+- **Estilização**: Framer Motion, Glassmorphism, Gradientes
+- **Estado**: Zustand, React Hooks
 
-### 3. 🎭 Background com Profundidade
-- Gradiente base: `from-slate-900 via-blue-900/20 via-purple-900/20 to-slate-900`
-- Orbs flutuantes animados com diferentes tamanhos e delays
-- Textura de ruído sutil para profundidade adicional
-- Múltiplas camadas de blur para efeito de profundidade
+## 🚀 **Instalação e Configuração**
 
-### 4. 🚀 Hover Effects 3D
-- Transformação `perspective(1000px)` nos cards
-- Rotação suave `rotateX(5deg) rotateY(5deg)` no hover
-- Elevação com `translateY(-8px)` e escala `scale(1.02)`
-- Sombras dinâmicas com cores específicas para cada card
+### **1. Pré-requisitos**
+- Node.js 18+ 
+- npm ou yarn
+- Conta no Supabase
+- Chave da API OpenAI
 
-### 5. 💎 Liquid Glass Sidebar
-- Backdrop blur de 40px para efeito líquido
-- Gradiente vertical `from-slate-900/80 to-slate-800/60`
-- Bordas com `border-white/10` para transparência
-- Hover effects com `bg-white/10` para interatividade
-
-### 6. 🎤 Chat Input Premium
-- Input com glassmorphism e blur de 20px
-- Borda gradiente animada no focus
-- Efeito shimmer no hover
-- Botões com gradientes e animações 3D
-- Indicador "AI Powered" com ícone Sparkles
-
-### 7. 📋 Task Cards Glassmorphism
-- Background transparente com blur intenso
-- Progress bar com gradientes dinâmicos
-- Ícones de prioridade com cores específicas
-- Hover effects com rotação 3D sutil
-- Shimmer effect em toda a superfície
-
-### 8. 🎬 Animações e Microinterações
-- **Shimmer**: Efeito de brilho deslizante
-- **Liquid Float**: Movimento líquido flutuante
-- **Glow Pulse**: Pulsação de brilho
-- **Float**: Elementos flutuantes suaves
-- **Rotate**: Rotação contínua para orbs
-
-## 🛠️ Tecnologias Utilizadas
-
-- **Framer Motion**: Animações fluidas e interativas
-- **Tailwind CSS**: Classes utilitárias avançadas
-- **CSS Custom Properties**: Variáveis para consistência
-- **Hardware Acceleration**: `transform3d` para performance
-- **Backdrop Filters**: Efeitos de blur modernos
-
-## 🎯 Componentes Transformados
-
-### Stats Cards
-```tsx
-<PremiumStatsCard
-  title="Total Tasks"
-  value={24}
-  icon={<Target className="w-8 h-8 text-white" />}
-  gradient="from-blue-500 via-blue-600 to-purple-500"
-  glowColor="blue"
-/>
-```
-
-### Chat Input
-```tsx
-<ChatInput />
-// Input premium com glassmorphism, gradientes e efeitos 3D
-```
-
-### Task Cards
-```tsx
-<TaskCard task={task} onClick={handleClick} />
-// Cards com glassmorphism, progress bars animados e hover 3D
-```
-
-## 🚀 Performance Otimizada
-
-- **GPU Acceleration**: `transform: translate3d(0, 0, 0)`
-- **Will-change**: `will-change: transform, opacity`
-- **Lazy Loading**: Componentes pesados carregados sob demanda
-- **React.memo**: Otimização para componentes estáticos
-- **60fps**: Animações suaves mantidas
-
-## 🎨 Paleta de Cores Premium
-
-### Gradientes Principais
-- **Azul**: `#667eea → #764ba2`
-- **Verde**: `#4facfe → #00f2fe`
-- **Roxo**: `#a855f7 → #e879f9`
-- **Laranja**: `#ff9a9e → #fecfef`
-
-### Transparências
-- **Background**: `rgba(255, 255, 255, 0.05)`
-- **Bordas**: `rgba(255, 255, 255, 0.2)`
-- **Hover**: `rgba(255, 255, 255, 0.1)`
-- **Blur**: `backdrop-blur-[20px]`
-
-## 📱 Responsividade
-
-- **Mobile**: Bordas arredondadas reduzidas para 16px
-- **Tablet**: Blur otimizado para 15px
-- **Desktop**: Efeitos completos com máxima qualidade
-- **Dark Mode**: Ajustes automáticos para preferências do sistema
-
-## 🔧 Instalação e Uso
-
-1. **Clone o repositório**
+### **2. Clone o repositório**
 ```bash
-git clone [repository-url]
+git clone <url-do-repositorio>
 cd to-do_agentic
 ```
 
-2. **Instale as dependências**
+### **3. Instale as dependências**
 ```bash
 npm install
+# ou
+yarn install
 ```
 
-3. **Execute o projeto**
+### **4. Configure as variáveis de ambiente**
+Crie um arquivo `.env.local` na raiz do projeto:
+
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role_do_supabase
+
+# OpenAI Configuration
+OPENAI_API_KEY=sua_chave_da_api_openai
+
+# Anthropic Configuration (opcional)
+ANTHROPIC_API_KEY=sua_chave_da_api_anthropic
+```
+
+### **5. Configure o Supabase**
+
+#### **5.1 Crie um projeto no Supabase**
+1. Acesse [supabase.com](https://supabase.com)
+2. Crie uma nova conta ou faça login
+3. Crie um novo projeto
+4. Anote a URL e as chaves de API
+
+#### **5.2 Aplique o schema do banco de dados**
+1. No painel do Supabase, vá para **SQL Editor**
+2. Execute o conteúdo do arquivo `src/lib/supabase/migrations/001_initial_schema.sql`
+3. Isso criará todas as tabelas, políticas RLS e funções necessárias
+
+#### **5.3 Configure autenticação**
+1. No painel do Supabase, vá para **Authentication > Settings**
+2. Configure as URLs permitidas:
+   - Site URL: `http://localhost:3000`
+   - Redirect URLs: `http://localhost:3000/login`, `http://localhost:3000/register`
+
+### **6. Execute o projeto**
 ```bash
 npm run dev
+# ou
+yarn dev
 ```
 
-4. **Build para produção**
-```bash
-npm run build
-```
+Acesse [http://localhost:3000](http://localhost:3000)
 
-## 📁 Estrutura de Arquivos
+## 🔐 **Sistema de Autenticação**
+
+### **Funcionalidades Implementadas**
+- ✅ Login com email/senha
+- ✅ Registro de novos usuários
+- ✅ Middleware de proteção de rotas
+- ✅ Context de autenticação global
+- ✅ Verificação automática de sessão
+- ✅ Logout seguro
+
+### **Rotas Protegidas**
+- `/dashboard/*` - Requer autenticação
+- `/api/*` - Requer token válido (exceto `/api/auth/*`)
+
+### **Rotas Públicas**
+- `/` - Página inicial
+- `/login` - Formulário de login
+- `/register` - Formulário de registro
+
+## 📁 **Estrutura do Projeto**
 
 ```
 src/
-├── components/
-│   ├── premium/
-│   │   └── Glass/
-│   │       ├── PremiumStatsCard.tsx    # Cards premium
-│   │       └── GlassCard.tsx           # Base glassmorphism
-│   ├── dashboard/
-│   │   ├── StatsCards.tsx              # Grid de stats
-│   │   └── MainDashboard.tsx           # Dashboard principal
-│   ├── chat/
-│   │   └── ChatInput.tsx               # Input premium
-│   └── tasks/
-│       └── TaskCard.tsx                # Cards de tarefas
-├── styles/
-│   └── premium.css                     # Animações e efeitos
-└── app/
-    └── dashboard/
-        └── page.tsx                    # Página principal
+├── app/                    # App Router (Next.js 14)
+│   ├── api/               # APIs do backend
+│   │   ├── auth/          # Autenticação
+│   │   ├── workspaces/    # Gerenciamento de workspaces
+│   │   ├── projects/      # Gerenciamento de projetos
+│   │   └── tasks/         # Gerenciamento de tarefas
+│   ├── dashboard/         # Dashboard principal
+│   ├── login/             # Página de login
+│   └── register/          # Página de registro
+├── components/             # Componentes React
+│   ├── auth/              # Componentes de autenticação
+│   ├── dashboard/         # Componentes do dashboard
+│   └── shared/            # Componentes compartilhados
+├── hooks/                  # Custom hooks
+│   ├── useAuth.ts         # Hook de autenticação
+│   └── useSupabase.ts     # Hook para Supabase
+├── lib/                    # Utilitários e configurações
+│   ├── auth.ts            # Funções de autenticação
+│   └── supabase/          # Configuração do Supabase
+└── types/                  # Definições de tipos TypeScript
 ```
 
-## 🌟 Próximas Melhorias
+## 🎯 **Como Usar**
 
-- [ ] Partículas 3D interativas
-- [ ] Efeitos de água líquida
-- [ ] Animações de entrada mais elaboradas
-- [ ] Temas personalizáveis
-- [ ] Modo claro/escuro automático
+### **1. Primeiro Acesso**
+1. Acesse a página inicial
+2. Clique em "Criar Conta"
+3. Preencha seus dados e crie uma conta
+4. Faça login com suas credenciais
 
-## 📄 Licença
+### **2. Criando Tarefas**
+1. No dashboard, use o chat conversacional
+2. Digite ou grave mensagens como:
+   - "Cliente precisa de orçamento até sexta"
+   - "Reunião com equipe amanhã às 10h"
+   - "Finalizar relatório do projeto X"
+3. A IA analisará e criará tarefas automaticamente
+
+### **3. Gerenciando Workspaces e Projetos**
+1. Use o sidebar para navegar entre workspaces
+2. Crie novos projetos dentro dos workspaces
+3. Organize tarefas por projeto e prioridade
+
+## 🔧 **APIs Disponíveis**
+
+### **Workspaces**
+- `GET /api/workspaces` - Listar workspaces do usuário
+- `POST /api/workspaces` - Criar novo workspace
+- `PUT /api/workspaces` - Atualizar workspace
+- `DELETE /api/workspaces` - Deletar workspace
+
+### **Projetos**
+- `GET /api/projects` - Listar projetos do usuário
+- `POST /api/projects` - Criar novo projeto
+- `PUT /api/projects` - Atualizar projeto
+- `DELETE /api/projects` - Deletar projeto
+
+### **Tarefas**
+- `GET /api/tasks` - Listar tarefas do workspace
+- `POST /api/tasks` - Criar nova tarefa
+- `PUT /api/tasks` - Atualizar tarefa
+- `DELETE /api/tasks` - Deletar tarefa
+
+## 🚨 **Troubleshooting**
+
+### **Problemas Comuns**
+
+#### **1. Erro de autenticação**
+- Verifique se as variáveis do Supabase estão corretas
+- Confirme se o schema foi aplicado no banco
+- Verifique se as políticas RLS estão ativas
+
+#### **2. Erro de conexão com Supabase**
+- Verifique a URL e chaves no `.env.local`
+- Confirme se o projeto está ativo no Supabase
+- Verifique se não há bloqueios de firewall
+
+#### **3. Erro de OpenAI**
+- Verifique se a chave da API está correta
+- Confirme se tem créditos disponíveis na conta
+- Verifique se a API está funcionando
+
+### **Logs e Debug**
+- Use o console do navegador para logs do frontend
+- Verifique os logs do Supabase no painel
+- Use o middleware para debug de autenticação
+
+## 📈 **Próximos Passos**
+
+### **Fase 2: Integração (Semana 3-4)**
+- [ ] Sistema de eventos real-time
+- [ ] Pipeline de agentes de IA
+- [ ] Sincronização de estado
+
+### **Fase 3: Funcionalidades (Semana 5-6)**
+- [ ] Componentes de visualização de tarefas
+- [ ] Funcionalidades de criação/edição
+- [ ] Busca e filtros avançados
+
+### **Fase 4: Polimento (Semana 7-8)**
+- [ ] Testes e correção de bugs
+- [ ] Melhorias de UX/UI
+- [ ] Otimizações de performance
+
+## 🤝 **Contribuição**
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 **Licença**
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-## 🤝 Contribuição
+## 📞 **Suporte**
 
-Contribuições são bem-vindas! Por favor, leia o guia de contribuição antes de submeter pull requests.
+- **Issues**: Use o GitHub Issues para reportar bugs
+- **Documentação**: Consulte a documentação do Supabase e Next.js
+- **Comunidade**: Participe da comunidade do Supabase
 
 ---
 
-**TaskFlow AI** - Transformando a gestão de tarefas com IA e design premium ✨
+**Desenvolvido com ❤️ usando Next.js, Supabase e OpenAI**
