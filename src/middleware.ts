@@ -70,20 +70,26 @@ export async function middleware(req: NextRequest) {
 
   // Se não estiver autenticado e tentar acessar rota protegida
   if (!session && !isPublicRoute) {
+    // Permitir chamadas para /api/* se trouxerem Authorization: Bearer <token>
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      const hasAuthHeader = !!req.headers.get('authorization');
+      if (hasAuthHeader) {
+        return response; // Deixa as rotas /api validarem o token por conta própria
+      }
+      if (!req.nextUrl.pathname.startsWith('/api/auth')) {
+        return NextResponse.json(
+          { error: 'Não autorizado' },
+          { status: 401 }
+        );
+      }
+    }
+
     // Redirecionar para login se tentar acessar dashboard
     if (req.nextUrl.pathname.startsWith('/dashboard')) {
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/login';
       redirectUrl.searchParams.set('redirect', req.nextUrl.pathname);
       return NextResponse.redirect(redirectUrl);
-    }
-    
-    // Para outras rotas protegidas, retornar 401
-    if (req.nextUrl.pathname.startsWith('/api/') && !req.nextUrl.pathname.startsWith('/api/auth')) {
-      return NextResponse.json(
-        { error: 'Não autorizado' },
-        { status: 401 }
-      );
     }
   }
 

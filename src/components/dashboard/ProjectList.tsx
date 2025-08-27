@@ -3,24 +3,19 @@
 import { useAppStore } from '@/lib/store';
 import { Project } from '@/types';
 import { motion } from 'framer-motion';
+import { useProjects } from '@/hooks/useProjects';
 
 export function ProjectList() {
   const { currentProject, setCurrentProject, currentWorkspace } = useAppStore();
-
-  const projects: Project[] = [
-    { id: '1', workspace_id: '2', name: 'Kabbatec', description: 'Cliente de marketing digital', status: 'active', client_sla_hours: 4 },
-    { id: '2', workspace_id: '2', name: 'Cartório', description: 'Cliente de serviços jurídicos', status: 'active', client_sla_hours: 24 },
-    { id: '3', workspace_id: '2', name: 'Academia SP', description: 'Cliente de fitness', status: 'active', client_sla_hours: 8 },
-  ];
-
-  const workspaceProjects = projects.filter(p => p.workspace_id === currentWorkspace?.id);
+  const { projects } = useProjects(currentWorkspace?.id);
+  const workspaceProjects = (projects as Project[]);
 
   return (
     <div className="px-4 py-4">
       <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest mb-4 px-2">
         Projetos
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-2 max-h-[42vh] overflow-auto pr-1">
         <motion.button
           onClick={() => setCurrentProject(null)}
           whileHover={{ x: 6, scale: 1.02 }}
@@ -81,10 +76,7 @@ export function ProjectList() {
               {project.name}
             </span>
             
-            {/* SLA hours */}
-            <span className="text-xs text-slate-300 ml-auto relative z-10">
-              {project.client_sla_hours}h
-            </span>
+            <span className="text-xs text-slate-300 ml-auto relative z-10" />
             
             {/* Hover glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />

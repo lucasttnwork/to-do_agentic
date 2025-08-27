@@ -1,31 +1,37 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import StatsCards from '@/components/dashboard/StatsCards';
+import { TaskViewSwitcher } from '@/components/tasks/TaskViewSwitcher';
+import CreateTaskModal from '@/components/dashboard/CreateTaskModal';
+import { useAppStore } from '@/lib/store';
+import { getAccessToken } from '@/lib/auth';
+import { useTasks } from '@/hooks/useTasks';
 import ChatInput from '@/components/chat/ChatInput';
+import { WorkspaceSelector } from '@/components/dashboard/WorkspaceSelector';
+import { ProjectList } from '@/components/dashboard/ProjectList';
+import { TaskList } from '@/components/tasks/TaskList';
 
 import { DashboardLoadingSpinner, InitializationSpinner, LogoutSpinner } from '@/components/shared/LoadingSpinner';
 
 export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
-  const [selectedProject, setSelectedProject] = useState('Academia SP');
   const [loadingTimeout, setLoadingTimeout] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
   const { user, loading, logout, updateAuthState } = useAuthContext();
   const router = useRouter();
+  const { currentWorkspace, currentProject } = useAppStore();
+  const { refresh: refreshTasks } = useTasks({
+    workspaceId: currentWorkspace?.id,
+    projectId: currentProject?.id,
+  });
   
-  // Refs para controlar verificações desnecessárias
-  const hasInitialized = useRef(false);
-  const lastAuthCheck = useRef<number>(0);
-  const correctionAttempts = useRef(0);
-
   // Marcar quando o componente está no cliente para evitar hidratação
   useEffect(() => {
     setIsClient(true);
@@ -131,10 +137,22 @@ export default function DashboardPage() {
     );
   }
 
-  // Se não estiver autenticado, redirecionar para login
+  // Se não estiver autenticado, mostrar fallback amigável com CTA
   if (!user) {
-    router.push('/login');
-    return null;
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="mb-4 text-yellow-400">ℹ️</div>
+          <p className="mb-4">Você não está autenticado.</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
+            Ir para Login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -155,10 +173,10 @@ export default function DashboardPage() {
       
       {/* Main content */}
       <div className="relative z-20">
-        <div className="flex h-screen text-slate-50">
+        <div className="flex h-screen text-slate-50 min-h-[720px] md:min-h-[760px] lg:min-h-[800px] min-w-0 overflow-auto">
           {/* Sidebar - Workspaces/Projetos com Liquid Glass */}
           <motion.aside 
-            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} backdrop-blur-[40px] bg-gradient-to-b from-slate-900/80 to-slate-800/60 border-r border-white/10 transition-all duration-300 flex flex-col relative z-30 overflow-hidden`}
+            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} shrink-0 backdrop-blur-[40px] bg-gradient-to-b from-slate-900/80 to-slate-800/60 border-r border-white/10 transition-all duration-300 flex flex-col relative z-30 overflow-hidden`}
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
@@ -196,74 +214,14 @@ export default function DashboardPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.2 }}
               >
-                <div className="mb-6">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">WORKSPACES</h3>
-                  <div className="space-y-2">
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-r from-red-400 to-pink-400 rounded-full group-hover:scale-110 transition-transform" />
-                      <span className="text-slate-200">Pessoal</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full group-hover:scale-110 transition-transform" />
-                      <span className="text-slate-200">NTEX</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-blue-400 rounded-full group-hover:scale-110 transition-transform" />
-                      <span className="text-slate-200">Kabbatec</span>
-                    </motion.div>
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">PROJETOS</h3>
-                  <div className="space-y-2">
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="text-slate-200">Todos os projetos</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="text-slate-200">Kabbatec</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="text-slate-200">Cartório</span>
-                    </motion.div>
-                    <motion.div 
-                      className="flex items-center space-x-3 p-2 rounded-lg bg-blue-500/20 border border-blue-500/30 cursor-pointer group"
-                      whileHover={{ x: 6, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <span className="text-blue-300">Academia SP</span>
-                    </motion.div>
-                  </div>
-                </div>
+                <WorkspaceSelector />
+                <ProjectList />
 
                 <motion.button 
                   className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-600 hover:to-blue-600 transition-all duration-300 shadow-lg group relative overflow-hidden"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsCreateModalOpen(true)}
                 >
                   {/* Shimmer Effect */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
@@ -274,10 +232,10 @@ export default function DashboardPage() {
           </motion.aside>
 
           {/* Área principal */}
-          <main className="flex-1 flex flex-col">
+          <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
             {/* Header */}
             <motion.header 
-              className="p-8 border-b border-white/10 backdrop-blur-[20px] bg-white/5 relative overflow-hidden"
+              className="p-4 md:p-6 lg:p-6 border-b border-white/10 backdrop-blur-[20px] bg-white/5 relative overflow-hidden"
               initial={{ y: -50, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -333,7 +291,7 @@ export default function DashboardPage() {
 
             {/* Stats Cards Premium */}
             <motion.section 
-              className="p-8"
+              className="p-3 md:p-4 lg:p-5"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.8 }}
@@ -342,10 +300,10 @@ export default function DashboardPage() {
             </motion.section>
 
             {/* Main content */}
-            <div className="flex-1 flex p-8 gap-8">
+            <div className="flex-1 flex flex-col lg:flex-row p-3 md:p-4 lg:p-5 gap-4 lg:gap-5 min-h-0 min-w-0 overflow-hidden">
               {/* Chat conversacional com Glassmorphism */}
               <motion.section 
-                className="w-96 backdrop-blur-[20px] bg-white/5 border border-white/20 rounded-3xl flex flex-col shadow-2xl shadow-black/20 relative overflow-hidden group"
+                className="w-full lg:w-96 backdrop-blur-[20px] bg-white/5 border border-white/20 rounded-2xl flex flex-col shadow-2xl shadow-black/20 relative overflow-hidden group min-h-0"
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.8 }}
@@ -362,7 +320,7 @@ export default function DashboardPage() {
                   <h3 className="text-lg font-semibold text-white mb-2">AI Assistant</h3>
                   <p className="text-slate-400 text-sm">NTEX • Academia SP</p>
                 </div>
-                <div className="flex-1 p-6">
+                <div className="flex-1 p-4 overflow-auto min-h-0">
                   <div className="bg-white/5 rounded-lg p-4 mb-4 border border-white/10 backdrop-blur-sm">
                     <div className="flex items-center space-x-2 mb-2">
                       <span className="text-yellow-400">💡</span>
@@ -383,7 +341,7 @@ export default function DashboardPage() {
 
               {/* Lista de tarefas com Glassmorphism */}
               <motion.section 
-                className="flex-1 flex flex-col backdrop-blur-[20px] bg-white/5 border border-white/20 rounded-3xl shadow-2xl shadow-black/20 relative overflow-hidden group"
+                className="flex-1 flex flex-col backdrop-blur-[20px] bg-white/5 border border-white/20 rounded-2xl shadow-2xl shadow-black/20 relative overflow-hidden group min-w-0 min-h-0"
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.0, duration: 0.8 }}
@@ -396,80 +354,11 @@ export default function DashboardPage() {
                 {/* Shimmer Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-3xl" />
                 
-                <div className="relative z-10 p-6 border-b border-white/10">
-                  <div className="flex items-center justify-between">
-                    <div className="flex space-x-1">
-                      <motion.button 
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium shadow-lg shadow-blue-500/25"
-                        whileHover={{ scale: 1.05, y: -2 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Lista
-                      </motion.button>
-                      <motion.button 
-                        className="px-4 py-2 text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Kanban
-                      </motion.button>
-                      <motion.button 
-                        className="px-4 py-2 text-slate-400 hover:text-white rounded-lg text-sm font-medium transition-colors"
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        Timeline
-                      </motion.button>
-                    </div>
-                    <div className="flex space-x-2">
-                      <select className="bg-white/5 text-slate-300 text-sm rounded-lg px-3 py-2 border border-white/10 backdrop-blur-sm focus:border-white/30 focus:outline-none transition-colors">
-                        <option>Todas as prioridades</option>
-                      </select>
-                      <select className="bg-white/5 text-slate-300 text-sm rounded-lg px-3 py-2 border border-white/10 backdrop-blur-sm focus:border-white/30 focus:outline-none transition-colors">
-                        <option>Todos os status</option>
-                      </select>
-                    </div>
-                  </div>
+                <div className="relative z-10 p-3 md:p-4 border-b border-white/10">
+                  <TaskViewSwitcher />
                 </div>
-                <div className="flex-1 overflow-auto p-6">
-                  <motion.div 
-                    className="bg-white/5 rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all duration-300 backdrop-blur-sm group cursor-pointer"
-                    whileHover={{ scale: 1.02, y: -3 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-white mb-2">Criar campanha Instagram Academia SP</h4>
-                        <p className="text-slate-300 mb-3">Desenvolver campanha para redes sociais da academia</p>
-                        <div className="flex items-center space-x-4 text-sm text-slate-400">
-                          <span>P2 - Normal</span>
-                          <span className="text-green-400">Concluído</span>
-                          <span>21/02/2025</span>
-                          <span>4h</span>
-                        </div>
-                      </div>
-                      <div className="w-24 h-2 bg-slate-600 rounded-full overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full shadow-lg shadow-blue-500/25" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="text-green-400">✓</span>
-                        <span className="text-slate-300">Briefing com cliente</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="text-green-400">✓</span>
-                        <span className="text-slate-300">Criar conceito visual</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="text-green-400">✓</span>
-                        <span className="text-slate-300">Produzir conteúdo</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 text-xs text-slate-500">
-                      Criado em 19/02/2025, 15:10
-                    </div>
-                  </motion.div>
+                <div className="flex-1 overflow-auto p-3 md:p-4 min-h-0">
+                  <TaskList />
                 </div>
               </motion.section>
             </div>
@@ -477,7 +366,52 @@ export default function DashboardPage() {
         </div>
       </div>
 
-
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        workspaceId={currentWorkspace?.id}
+        projectId={currentProject?.id || null}
+        onSubmit={async (taskData) => {
+          try {
+            console.log('Workspace atual:', currentWorkspace);
+            console.log('Projeto atual:', currentProject);
+            await createTaskRequest(taskData);
+          } catch (e) {
+            console.error('Erro no onSubmit:', e);
+            alert('Erro ao criar tarefa: ' + (e instanceof Error ? e.message : 'Erro desconhecido'));
+          } finally {
+            // Revalidar lista após criar
+            if (typeof refreshTasks === 'function') {
+              refreshTasks();
+            }
+          }
+        }}
+      />
     </div>
   );
+}
+
+async function createTaskRequest(payload: any) {
+  console.log('Payload sendo enviado:', payload);
+  const token = await getAccessToken();
+  if (!token) throw new Error('Sem token de autenticação');
+  
+  const res = await fetch('/api/tasks', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  
+  console.log('Response status:', res.status);
+  
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('Erro da API:', err);
+    throw new Error(err?.error || `Falha ao criar tarefa (${res.status})`);
+  }
+  return res.json();
 }

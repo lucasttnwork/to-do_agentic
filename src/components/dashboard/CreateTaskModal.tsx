@@ -10,17 +10,20 @@ interface TaskData {
   description: string;
   priority: number;
   due_date: string;
-  effort_minutes: string;
+  effort_minutes?: number;
   workspace_id: string;
+  project_id?: string;
 }
 
 interface CreateTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (taskData: TaskData) => void;
+  workspaceId?: string;
+  projectId?: string | null;
 }
 
-export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalProps) {
+export default function CreateTaskModal({ isOpen, onClose, onSubmit, workspaceId, projectId }: CreateTaskModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,15 +31,60 @@ export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTas
     due_date: '',
     effort_minutes: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!workspaceId) {
+      newErrors.workspace = 'Selecione um workspace primeiro';
+    }
+    
+    if (!formData.title.trim()) {
+      newErrors.title = 'Título é obrigatório';
+    }
+    
+    if (formData.effort_minutes && parseFloat(formData.effort_minutes) <= 0) {
+      newErrors.effort_minutes = 'Tempo deve ser maior que zero';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      workspace_id: 'personal'
-    });
-    onClose();
-    setFormData({ title: '', description: '', priority: 2, due_date: '', effort_minutes: '' });
+    
+    if (!validateForm()) return;
+    
+    if (!workspaceId) {
+      onClose();
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const payload: TaskData = {
+        title: formData.title,
+        description: formData.description,
+        priority: formData.priority,
+        due_date: formData.due_date || undefined,
+        effort_minutes: formData.effort_minutes ? Math.round(parseFloat(formData.effort_minutes) * 60) : undefined,
+        workspace_id: workspaceId,
+        project_id: projectId ?? undefined,
+      };
+      
+      await onSubmit(payload);
+      onClose();
+      setFormData({ title: '', description: '', priority: 2, due_date: '', effort_minutes: '' });
+      setErrors({});
+    } catch (error) {
+      console.error('Erro ao criar tarefa:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -55,36 +103,51 @@ export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTas
           </button>
         </div>
 
+        {/* Erro de workspace */}
+        {errors.workspace && (
+          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 mb-4">
+            <p className="text-red-400 text-sm">{errors.workspace}</p>
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Task Title</label>
+            <label className="block text-sm font-medium mb-2 text-white">Título da Tarefa</label>
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50"
-              placeholder="What needs to be done?"
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, title: e.target.value }));
+                if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
+              }}
+              className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none transition-colors ${
+                errors.title ? 'border-red-500/50 focus:border-red-500' : 'border-white/20 focus:border-blue-500/50'
+              }`}
+              placeholder="O que precisa ser feito?"
               required
             />
+            {errors.title && (
+              <p className="text-red-400 text-sm mt-1">{errors.title}</p>
+            )}
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Description</label>
+            <label className="block text-sm font-medium mb-2 text-white">Descrição</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 resize-none"
-              placeholder="Add details about this task..."
+              placeholder="Adicione detalhes sobre esta tarefa..."
               rows={3}
             />
           </div>
 
           {/* Priority */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Priority</label>
+            <label className="block text-sm font-medium mb-2 text-white">Prioridade</label>
             <div className="grid grid-cols-3 gap-2">
               {[1, 2, 3].map((priority) => (
                 <button
@@ -109,7 +172,7 @@ export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTas
 
           {/* Due Date */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Due Date</label>
+            <label className="block text-sm font-medium mb-2 text-white">Data de Vencimento</label>
             <div className="relative">
               <input
                 type="date"
@@ -123,19 +186,27 @@ export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTas
 
           {/* Effort */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-white">Estimated Effort (hours)</label>
+            <label className="block text-sm font-medium mb-2 text-white">Esforço Estimado (horas)</label>
             <div className="relative">
               <input
                 type="number"
                 min="0.5"
                 step="0.5"
                 value={formData.effort_minutes}
-                onChange={(e) => setFormData(prev => ({ ...prev, effort_minutes: e.target.value }))}
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500/50"
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, effort_minutes: e.target.value }));
+                  if (errors.effort_minutes) setErrors(prev => ({ ...prev, effort_minutes: '' }));
+                }}
+                className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white focus:outline-none transition-colors ${
+                  errors.effort_minutes ? 'border-red-500/50 focus:border-red-500' : 'border-white/20 focus:border-blue-500/50'
+                }`}
                 placeholder="2.5"
               />
               <Clock className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
             </div>
+            {errors.effort_minutes && (
+              <p className="text-red-400 text-sm mt-1">{errors.effort_minutes}</p>
+            )}
           </div>
 
           {/* Actions */}
@@ -143,15 +214,17 @@ export default function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTas
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-white/20 rounded-lg text-white hover:bg-white/10 transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 border border-white/20 rounded-lg text-white hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Task
+              {isSubmitting ? 'Criando...' : 'Criar Tarefa'}
             </button>
           </div>
         </form>

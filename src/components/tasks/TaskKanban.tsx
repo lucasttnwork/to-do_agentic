@@ -1,13 +1,19 @@
 'use client';
 
+import React, { useState } from 'react';
 import { Task } from '@/types';
 import { TaskCard } from './TaskCard';
+import { useAppStore } from '@/lib/store';
+import { getAccessToken } from '@/lib/auth';
 
 interface TaskKanbanProps {
   tasks: Task[];
 }
 
 export function TaskKanban({ tasks }: TaskKanbanProps) {
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const { updateTask } = useAppStore();
   const columns = [
     { 
       id: 'todo', 
@@ -33,6 +39,63 @@ export function TaskKanban({ tasks }: TaskKanbanProps) {
     return tasks.filter(task => task.status === status);
   };
 
+  const handleDragStart = (e: React.DragEvent, task: Task) => {
+    setDraggedTask(task);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', task.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(columnId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, newStatus: string) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+    
+    if (!draggedTask || draggedTask.status === newStatus) {
+      setDraggedTask(null);
+      return;
+    }
+
+    try {
+      // Atualização otimista
+      updateTask(draggedTask.id, { status: newStatus as Task['status'] });
+      
+      // Atualizar no backend
+      const token = await getAccessToken();
+      if (token) {
+        const res = await fetch('/api/tasks', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ 
+            id: draggedTask.id, 
+            status: newStatus 
+          }),
+        });
+        
+        if (!res.ok) {
+          // Rollback simples: recarregar página se falhar
+          window.location.reload();
+        }
+      }
+    } catch {
+      // Rollback simples
+      window.location.reload();
+    } finally {
+      setDraggedTask(null);
+    }
+  };
+
   return (
     <div className="flex gap-6 p-6 h-full overflow-x-auto">
       {columns.map((column) => {
@@ -40,7 +103,14 @@ export function TaskKanban({ tasks }: TaskKanbanProps) {
         
         return (
           <div key={column.id} className="flex-shrink-0 w-80">
-            <div className={`backdrop-blur-sm ${column.bgColor} border border-slate-700/30 rounded-2xl p-6 h-full shadow-xl shadow-black/20 relative`}>
+            <div 
+              className={`backdrop-blur-sm ${column.bgColor} border border-slate-700/30 rounded-2xl p-6 h-full shadow-xl shadow-black/20 relative transition-all duration-300 ${
+                dragOverColumn === column.id ? 'ring-2 ring-blue-500/50 border-blue-500/30' : ''
+              }`}
+              onDragOver={(e) => handleDragOver(e, column.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, column.id)}
+            >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-semibold text-white">{column.title}</h3>
                 <span className="text-sm text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-600/30">
@@ -53,7 +123,12 @@ export function TaskKanban({ tasks }: TaskKanbanProps) {
               
               <div className="space-y-4">
                 {columnTasks.map((task) => (
-                  <div key={task.id} className="backdrop-blur-xl bg-slate-700/20 border border-slate-600/20 hover:border-slate-500/30 rounded-xl transition-all duration-300">
+                  <div 
+                    key={task.id} 
+                    className="backdrop-blur-xl bg-slate-700/20 border border-slate-600/20 hover:border-slate-500/30 rounded-xl transition-all duration-300 cursor-move"
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task)}
+                  >
                     <TaskCard task={task} />
                   </div>
                 ))}

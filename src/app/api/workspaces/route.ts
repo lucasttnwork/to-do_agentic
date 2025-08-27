@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase/client';
+import { supabase, createRequestSupabaseClient } from '../../../lib/supabase/client';
 
 // GET /api/workspaces - Listar workspaces do usuário
 export async function GET(request: NextRequest) {
@@ -19,8 +19,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
+    const sb = createRequestSupabaseClient(token);
+
     // Buscar workspaces do usuário
-    const { data: workspaces, error } = await supabase
+    const { data: workspaces, error } = await sb
       .from('workspaces')
       .select('*')
       .eq('user_id', user.id)
@@ -63,8 +65,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Nome do workspace é obrigatório' }, { status: 400 });
     }
 
+    const sb = createRequestSupabaseClient(token);
+
     // Criar workspace
-    const { data: workspace, error } = await supabase
+    const { data: workspace, error } = await sb
       .from('workspaces')
       .insert({
         user_id: user.id,
@@ -112,8 +116,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID do workspace é obrigatório' }, { status: 400 });
     }
 
+    const sb = createRequestSupabaseClient(token);
+
     // Verificar se o workspace pertence ao usuário
-    const { data: existingWorkspace, error: checkError } = await supabase
+    const { data: existingWorkspace, error: checkError } = await sb
       .from('workspaces')
       .select('id')
       .eq('id', id)
@@ -125,7 +131,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar workspace
-    const { data: workspace, error } = await supabase
+    const { data: workspace, error } = await sb
       .from('workspaces')
       .update({
         name,
@@ -175,8 +181,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID do workspace é obrigatório' }, { status: 400 });
     }
 
+    const sb = createRequestSupabaseClient(token);
+
     // Verificar se o workspace pertence ao usuário
-    const { data: existingWorkspace, error: checkError } = await supabase
+    const { data: existingWorkspace, error: checkError } = await sb
       .from('workspaces')
       .select('id')
       .eq('id', id)
@@ -188,7 +196,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Deletar workspace (cascade irá deletar projetos e tarefas)
-    const { error } = await supabase
+    const { error } = await sb
       .from('workspaces')
       .delete()
       .eq('id', id);

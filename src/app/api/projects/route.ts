@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase/client';
+import { supabase, createRequestSupabaseClient } from '../../../lib/supabase/client';
 
 // GET /api/projects - Listar projetos do usuário
 export async function GET(request: NextRequest) {
@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const workspaceId = url.searchParams.get('workspace_id');
 
-    let query = supabase
+    const sb = createRequestSupabaseClient(token);
+
+    let query = sb
       .from('projects')
       .select(`
         *,
@@ -68,6 +70,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 
+    const sb = createRequestSupabaseClient(token);
+
     // Obter dados do request
     const { name, description, status, client_sla_hours, workspace_id } = await request.json();
 
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o workspace pertence ao usuário
-    const { data: workspace, error: workspaceError } = await supabase
+    const { data: workspace, error: workspaceError } = await sb
       .from('workspaces')
       .select('id')
       .eq('id', workspace_id)
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Criar projeto
-    const { data: project, error } = await supabase
+    const { data: project, error } = await sb
       .from('projects')
       .insert({
         workspace_id,
@@ -138,7 +142,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verificar se o projeto pertence ao usuário
-    const { data: existingProject, error: checkError } = await supabase
+    const sb = createRequestSupabaseClient(token);
+
+    const { data: existingProject, error: checkError } = await sb
       .from('projects')
       .select(`
         id,
@@ -153,7 +159,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Atualizar projeto
-    const { data: project, error } = await supabase
+    const { data: project, error } = await sb
       .from('projects')
       .update({
         name,
@@ -205,7 +211,9 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verificar se o projeto pertence ao usuário
-    const { data: existingProject, error: checkError } = await supabase
+    const sb = createRequestSupabaseClient(token);
+
+    const { data: existingProject, error: checkError } = await sb
       .from('projects')
       .select(`
         id,
@@ -220,7 +228,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Deletar projeto (cascade irá deletar tarefas)
-    const { error } = await supabase
+    const { error } = await sb
       .from('projects')
       .delete()
       .eq('id', id);

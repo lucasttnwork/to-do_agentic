@@ -7,7 +7,7 @@ export function usePageVisibility() {
   
   // Refs para controlar mudanças desnecessárias
   const lastVisibilityState = useRef<'visible' | 'hidden'>('visible');
-  const visibilityChangeTimeout = useRef<NodeJS.Timeout | null>(null);
+  const visibilityChangeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Só executar no cliente

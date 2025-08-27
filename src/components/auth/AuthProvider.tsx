@@ -38,7 +38,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // Se está carregando mas já tem usuário, há um problema de estado
       if (auth.loading && auth.user && !loadingChanged) {
-        console.log('Estado inconsistente detectado: loading=true mas user existe, corrigindo...');
+        // Evitar console em produção
         
         // Limitar tentativas de correção para evitar loops infinitos
         if (correctionAttempts.current < 3) {
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           return () => clearTimeout(timer);
         } else {
-          console.warn('Máximo de tentativas de correção atingido, forçando estado...');
+          // Evitar console em produção
           // Forçar estado final
           correctionAttempts.current = 0;
         }

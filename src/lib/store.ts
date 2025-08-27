@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { Task, ChatMessage, Workspace, Project, User } from '@/types';
 
+type TaskListFilters = {
+  status: 'all' | 'todo' | 'in_progress' | 'done' | 'archived';
+  priority: 'all' | 1 | 2 | 3;
+};
+
 interface AppState {
   // Usuário atual
   user: User | null;
@@ -37,6 +42,10 @@ interface AppState {
   // View mode
   viewMode: 'list' | 'kanban' | 'timeline';
   setViewMode: (mode: 'list' | 'kanban' | 'timeline') => void;
+
+  // Task filters (UI)
+  taskFilters: TaskListFilters;
+  setTaskFilters: (filters: Partial<TaskListFilters>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -85,4 +94,10 @@ export const useAppStore = create<AppState>((set) => ({
   // View mode
   viewMode: 'list',
   setViewMode: (mode) => set({ viewMode: mode }),
+
+  // Task filters
+  taskFilters: { status: 'all', priority: 'all' },
+  setTaskFilters: (filters) => set((state) => ({
+    taskFilters: { ...state.taskFilters, ...filters },
+  })),
 }));

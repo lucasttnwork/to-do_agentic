@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { supabase } from '@/lib/supabase/client';
-import { Task } from '@/types';
+import { SemanticTaskMatch } from '@/types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
@@ -30,7 +30,7 @@ export async function searchTasksSemantic(
   query: string, 
   workspaceId: string, 
   limit: number = 10
-): Promise<Task[]> {
+): Promise<SemanticTaskMatch[]> {
   try {
     // Gerar embedding da query
     const queryEmbedding = await generateTaskEmbedding(query);
@@ -49,7 +49,7 @@ export async function searchTasksSemantic(
       throw error;
     }
 
-    return data || [];
+    return (data as SemanticTaskMatch[]) || [];
   } catch (error) {
     console.error('Erro na busca semântica:', error);
     return [];

@@ -34,3 +34,26 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 //   supabaseUrl,
 //   process.env.SUPABASE_SERVICE_ROLE_KEY!
 // );
+
+// Helper: cria um cliente Supabase por requisição com o token do usuário (para RLS)
+export function createRequestSupabaseClient(accessToken: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-Client-Info': 'taskflow-ai-web',
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      flowType: 'pkce',
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  });
+}

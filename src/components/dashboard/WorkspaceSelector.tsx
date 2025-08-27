@@ -2,28 +2,45 @@
 
 import { useAppStore } from '@/lib/store';
 import { Workspace } from '@/types';
-import { HomeIcon, Component1Icon } from '@radix-ui/react-icons';
 import { motion } from 'framer-motion';
+import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { useEffect } from 'react';
 
 export function WorkspaceSelector() {
-  const { currentWorkspace, setCurrentWorkspace } = useAppStore();
+  const { currentWorkspace, setCurrentWorkspace, setCurrentProject } = useAppStore();
+  const { workspaces, isLoading } = useWorkspaces();
 
-  const workspaces: Workspace[] = [
-    { id: '1', user_id: '1', name: 'Pessoal', type: 'personal', settings: {} },
-    { id: '2', user_id: '1', name: 'NTEX', type: 'client', settings: {} },
-    { id: '3', user_id: '1', name: 'Kabbatec', type: 'client', settings: {} },
-  ];
+  // Seleciona o primeiro workspace automaticamente quando carregar
+  useEffect(() => {
+    if (!currentWorkspace && workspaces && workspaces.length > 0) {
+      setCurrentWorkspace(workspaces[0] as Workspace);
+    }
+  }, [workspaces, currentWorkspace, setCurrentWorkspace]);
+
+  if (isLoading && (!workspaces || workspaces.length === 0)) {
+    return (
+      <div className="px-4 py-4">
+        <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest mb-4 px-2">
+          Workspaces
+        </h3>
+        <div className="text-slate-400 text-sm px-2">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 py-4">
       <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest mb-4 px-2">
         Workspaces
       </h3>
-      <div className="space-y-2">
-        {workspaces.map((workspace) => (
+      <div className="space-y-2 max-h-[40vh] overflow-auto pr-1">
+        {(workspaces as Workspace[]).map((workspace) => (
           <motion.button
             key={workspace.id}
-            onClick={() => setCurrentWorkspace(workspace)}
+            onClick={() => {
+              setCurrentWorkspace(workspace);
+              setCurrentProject(null);
+            }}
             whileHover={{ x: 6, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer group relative overflow-hidden ${
@@ -49,10 +66,8 @@ export function WorkspaceSelector() {
               {workspace.name}
             </span>
             
-            {/* Type icon */}
-            <span className="text-xs text-slate-300 ml-auto relative z-10">
-              {workspace.type === 'client' ? '🏢' : '🏠'}
-            </span>
+            {/* Right side */}
+            <span className="text-xs text-slate-300 ml-auto relative z-10" />
             
             {/* Hover glow */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl" />

@@ -6,7 +6,7 @@ import { Tabs, Box } from '@radix-ui/themes';
 type ViewMode = 'list' | 'kanban' | 'timeline';
 
 export function TaskViewSwitcher() {
-  const { viewMode, setViewMode } = useAppStore();
+  const { viewMode, setViewMode, taskFilters, setTaskFilters } = useAppStore();
 
   return (
     <Box className="flex items-center justify-between">
@@ -34,17 +34,29 @@ export function TaskViewSwitcher() {
       </Tabs.Root>
 
       <Box className="flex items-center gap-3">
-        <select className="bg-white/5 border border-white/10 text-slate-300 hover:border-blue-500/50 rounded-xl px-3 py-2 backdrop-blur-sm transition-all focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20">
+        <select
+          value={String(taskFilters.priority)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setTaskFilters({ priority: value === 'all' ? 'all' : (parseInt(value, 10) as 1 | 2 | 3) });
+          }}
+          className="bg-white/5 border border-white/10 text-slate-300 hover:border-blue-500/50 rounded-xl px-3 py-2 backdrop-blur-sm transition-all focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+        >
           <option value="all">Todas as prioridades</option>
           <option value="1">P1 - Urgente</option>
           <option value="2">P2 - Normal</option>
           <option value="3">P3 - Baixa</option>
         </select>
-        <select className="bg-white/5 border border-white/10 text-slate-300 hover:border-blue-500/50 rounded-xl px-3 py-2 backdrop-blur-sm transition-all focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20">
+        <select
+          value={taskFilters.status}
+          onChange={(e) => setTaskFilters({ status: e.target.value as any })}
+          className="bg-white/5 border border-white/10 text-slate-300 hover:border-blue-500/50 rounded-xl px-3 py-2 backdrop-blur-sm transition-all focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20"
+        >
           <option value="all">Todos os status</option>
           <option value="todo">A fazer</option>
           <option value="in_progress">Em andamento</option>
           <option value="done">Concluído</option>
+          <option value="archived">Arquivado</option>
         </select>
       </Box>
     </Box>

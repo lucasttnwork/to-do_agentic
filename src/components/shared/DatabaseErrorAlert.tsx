@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Database, ExternalLink } from 'lucide-react';
+import { Database, ExternalLink } from 'lucide-react';
 
 interface DatabaseErrorAlertProps {
   error: string;

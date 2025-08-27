@@ -38,6 +38,13 @@ export default [
       'no-undef': 'warn',
     },
   },
+  // Overrides específicos
+  {
+    files: ['next-env.d.ts'],
+    rules: {
+      '@typescript-eslint/triple-slash-reference': 'off',
+    },
+  },
   {
     ignores: [
       'node_modules/**',

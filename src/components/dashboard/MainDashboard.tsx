@@ -1,21 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, ChevronLeft, ChevronRight, Home, MessageSquare, Calendar, Settings, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Sidebar from './Sidebar';
 
 export function MainDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [selectedWorkspace, setSelectedWorkspace] = useState('NTEX');
-  const [selectedProject, setSelectedProject] = useState('Todos os projetos');
-
-  const menuItems = [
-    { icon: Home, label: 'Dashboard', active: true },
-    { icon: MessageSquare, label: 'Chat', active: false },
-    { icon: Calendar, label: 'Calendar', active: false },
-    { icon: Settings, label: 'Settings', active: false }
-  ];
+  const [selectedWorkspace] = useState('NTEX');
+  const [selectedProject] = useState('Todos os projetos');
 
   return (
     <div className="min-h-screen bg-slate-900 relative">

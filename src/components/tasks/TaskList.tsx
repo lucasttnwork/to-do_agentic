@@ -1,63 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { TaskCard } from './TaskCard';
 import { TaskKanban } from './TaskKanban';
 import { TaskTimeline } from './TaskTimeline';
-import { Loader2, Check, MoreHorizontal, Clock, Calendar, User } from 'lucide-react';
-import { mockTasks } from '@/lib/mock-data';
+import { Loader2, Clock, Calendar } from 'lucide-react';
+import { useTasks } from '@/hooks/useTasks';
 
 export function TaskList() {
-  const { viewMode, currentWorkspace, currentProject, tasks, setTasks } = useAppStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const { viewMode, currentWorkspace, currentProject, taskFilters, tasks, setTasks } = useAppStore();
+  const { tasks: swrTasks, isLoading, refresh } = useTasks({
+    workspaceId: currentWorkspace?.id,
+    projectId: currentProject?.id,
+    status: taskFilters.status === 'all' ? undefined : taskFilters.status,
+    priority: taskFilters.priority === 'all' ? undefined : taskFilters.priority,
+  });
 
   useEffect(() => {
-    if (currentWorkspace) {
-      loadTasks();
+    if (!swrTasks) return;
+    // Evitar updates desnecessários que podem causar loops de renderização
+    const sameLength = tasks.length === swrTasks.length;
+    const sameIds = sameLength && tasks.every((t, i) => t.id === swrTasks[i]?.id);
+    if (!sameIds) {
+      setTasks(swrTasks);
     }
-  }, [currentWorkspace, currentProject]);
-
-  const loadTasks = async () => {
-    if (!currentWorkspace) return;
-
-    setIsLoading(true);
-    try {
-      // Tentar carregar do banco primeiro
-      const params = new URLSearchParams({
-        workspace_id: currentWorkspace.id,
-      });
-
-      if (currentProject) {
-        params.append('project_id', currentProject.id);
-      }
-
-      const response = await fetch(`/api/tasks?${params}`);
-      const result = await response.json();
-
-      if (result.success) {
-        setTasks(result.tasks);
-      } else {
-        // Fallback para dados mockados
-        const filteredTasks = mockTasks.filter(task => 
-          task.workspace_id === currentWorkspace.id &&
-          (!currentProject || task.project_id === currentProject.id)
-        );
-        setTasks(filteredTasks);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar tarefas, usando dados mockados:', error);
-      // Fallback para dados mockados
-      const filteredTasks = mockTasks.filter(task => 
-        task.workspace_id === currentWorkspace.id &&
-        (!currentProject || task.project_id === currentProject.id)
-      );
-      setTasks(filteredTasks);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [swrTasks, setTasks, tasks]);
 
   // Cards de exemplo premium para preencher espaço vazio
   const renderExampleCards = () => (
@@ -244,12 +213,15 @@ export function TaskList() {
       return <TaskTimeline tasks={tasks} />;
     default:
       return (
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-3.5">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard 
+              key={task.id} 
+              task={task}
+              onUpdated={() => typeof refresh === 'function' && refresh()}
+              onDeleted={() => typeof refresh === 'function' && refresh()}
+            />
           ))}
-          
-          {/* Adicionar cards de exemplo se houver poucas tarefas */}
           {tasks.length < 3 && renderExampleCards()}
         </div>
       );

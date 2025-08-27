@@ -79,7 +79,7 @@ export function useAuth() {
   // Refs para controlar o estado e evitar verificações desnecessárias
   const isInitialized = useRef(false);
   const lastAuthCheck = useRef<number>(0);
-  const authCheckTimeout = useRef<NodeJS.Timeout | null>(null);
+  const authCheckTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isClient = useRef(false);
 
   // Função para atualizar o estado de autenticação com throttling reduzido

@@ -4,9 +4,10 @@ const nextConfig = {
   experimental: {
     // Melhorar a hidratação
     optimizePackageImports: ['framer-motion'],
-    // Suporte a streaming
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    // Suporte a streaming (migrado para serverExternalPackages)
   },
+  // Pacotes externos disponíveis para Server Components
+  serverExternalPackages: ['@supabase/supabase-js'],
   
   // Configurações de compilação
   compiler: {

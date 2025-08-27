@@ -68,6 +68,14 @@ export interface ChatMessage {
   metadata?: Record<string, unknown>;
 }
 
+// Retorno da busca semântica (RPC search_tasks_semantic)
+export interface SemanticTaskMatch {
+  id: string;
+  title: string;
+  description?: string;
+  similarity: number;
+}
+
 // Tipos para os agentes de IA
 export interface ParsedInput {
   intention: 'task_new' | 'task_update' | 'task_complete' | 'task_question';

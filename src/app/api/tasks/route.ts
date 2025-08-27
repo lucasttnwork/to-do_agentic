@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabase, createRequestSupabaseClient } from '@/lib/supabase/client';
 import { generateTaskEmbedding } from '@/lib/services/embedding-service';
 
 // Função para verificar autenticação
@@ -17,7 +17,7 @@ async function verifyAuth(request: NextRequest) {
     return { error: 'Token inválido', status: 401 };
   }
 
-  return { user };
+  return { user, token };
 }
 
 // GET - Listar tarefas
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const workspaceId = searchParams.get('workspace_id');
+    const projectId = searchParams.get('project_id');
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
 
@@ -41,8 +42,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const sb = createRequestSupabaseClient(auth.token);
+
     // Verificar se o workspace pertence ao usuário
-    const { data: workspace, error: workspaceError } = await supabase
+    const { data: workspace, error: workspaceError } = await sb
       .from('workspaces')
       .select('id')
       .eq('id', workspaceId)
@@ -56,17 +59,20 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let query = supabase
+    let query = sb
       .from('tasks')
       .select(`
         *,
         projects (
           id,
-          name,
-          client_id
+          name
         )
       `)
       .eq('workspace_id', workspaceId);
+
+    if (projectId) {
+      query = query.eq('project_id', projectId);
+    }
 
     if (status) {
       query = query.eq('status', status);
@@ -126,8 +132,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sb = createRequestSupabaseClient(auth.token);
+
     // Verificar se o workspace pertence ao usuário
-    const { data: workspace, error: workspaceError } = await supabase
+    const { data: workspace, error: workspaceError } = await sb
       .from('workspaces')
       .select('id')
       .eq('id', workspace_id)
@@ -143,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     // Verificar se o projeto pertence ao workspace (se especificado)
     if (project_id) {
-      const { data: project, error: projectError } = await supabase
+      const { data: project, error: projectError } = await sb
         .from('projects')
         .select('id')
         .eq('id', project_id)
@@ -161,7 +169,7 @@ export async function POST(req: NextRequest) {
     // Gerar embedding para a tarefa
     const embedding = await generateTaskEmbedding(title, description);
     
-    const { data: task, error } = await supabase
+    const { data: task, error } = await sb
       .from('tasks')
       .insert({
         workspace_id,
@@ -179,8 +187,7 @@ export async function POST(req: NextRequest) {
         *,
         projects (
           id,
-          name,
-          client_id
+          name
         )
       `)
       .single();
@@ -222,8 +229,10 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+    const sb = createRequestSupabaseClient(auth.token);
+
     // Verificar se a tarefa pertence ao usuário
-    const { data: existingTask, error: checkError } = await supabase
+    const { data: existingTask, error: checkError } = await sb
       .from('tasks')
       .select(`
         id,
@@ -240,7 +249,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const { data: task, error } = await supabase
+    const { data: task, error } = await sb
       .from('tasks')
       .update({
         ...updates,
@@ -251,8 +260,7 @@ export async function PUT(req: NextRequest) {
         *,
         projects (
           id,
-          name,
-          client_id
+          name
         )
       `)
       .single();
@@ -295,8 +303,10 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
+    const sb = createRequestSupabaseClient(auth.token);
+
     // Verificar se a tarefa pertence ao usuário
-    const { data: existingTask, error: checkError } = await supabase
+    const { data: existingTask, error: checkError } = await sb
       .from('tasks')
       .select(`
         id,
@@ -313,7 +323,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const { error } = await supabase
+    const { error } = await sb
       .from('tasks')
       .delete()
       .eq('id', id);
